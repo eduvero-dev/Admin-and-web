@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050a0f;
+  --foreground: #ffffff;
+  --navy: #1A237E;
+  --teal: #008295;
+  --cyan: #00d2ff;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism utilities */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.glass-input:focus {
+  border-color: var(--cyan);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Base styles for PWA standalone mode */
+@media (display-mode: standalone) {
+  body {
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Custom background blobs for that butterfly effect */
+.bg-blob {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 180, 216, 0.15) 0%, rgba(0, 130, 149, 0) 70%);
+  filter: blur(60px);
+  z-index: -1;
+}
+
+/* Force-hide Clerk footer and signup links */
+.cl-footer,
+.cl-footerAction,
+.cl-footerActionLink,
+.cl-footerActionText,
+.cl-internal-18y7un0,
+.cl-internal-1scxde7,
+.cl-internal-sgoeyr {
+  display: none !important;
+}
+
+/* Ensure the card looks clean without the footer */
+.cl-card {
+  border-bottom-left-radius: 2.5rem !important;
+  border-bottom-right-radius: 2.5rem !important;
+}
