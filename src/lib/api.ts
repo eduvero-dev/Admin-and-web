@@ -1,4 +1,4 @@
-import { Assessment, SubmitResultsPayload } from "./types";
+import { Assessment, DashboardAnalytics, FeedbackResponse, SubmitResultsPayload } from "./types";
 
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
   const questions = data.questions.map((q: any, index: number) => {
@@ -64,5 +64,60 @@ export async function submitAssessmentResults(payload: SubmitResultsPayload): Pr
   if (!res.ok) {
     throw new Error("Failed to submit results via proxy");
   }
+  return res.json();
+}
+
+export async function getDashboardAnalytics(token?: string | null): Promise<DashboardAnalytics> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/analytics/dashboard`;
+  console.log(`[API] Fetching dashboard analytics from: ${url}`);
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(url, {
+    headers,
+    next: { revalidate: 0 }
+  });
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`[API Error] Status: ${res.status}, Body: ${errorText}`);
+    throw new Error(`Failed to fetch dashboard analytics: ${res.status} ${errorText}`);
+  }
+  
+  return res.json();
+}
+
+export async function getFeedbacks(token?: string | null, limit: number = 20, offset: number = 0): Promise<FeedbackResponse> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/feedbacks?limit=${limit}&offset=${offset}`;
+
+  console.log(`[API] Fetching feedbacks from: ${url}`);
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(url, {
+    headers,
+    next: { revalidate: 0 }
+  });
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`[API Error Feedbacks] Status: ${res.status}, Body: ${errorText}`);
+    throw new Error(`Failed to fetch feedbacks: ${res.status} ${errorText}`);
+  }
+  
   return res.json();
 }
