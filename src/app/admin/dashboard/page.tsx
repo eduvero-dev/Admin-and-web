@@ -27,7 +27,7 @@ export default async function AdminDashboard() {
   try {
     const token = await auth().then(a => a.getToken());
     analytics = await getDashboardAnalytics(token);
-    feedbackData = await getFeedbacks(token, 5); // Just get the last 5 for dashboard
+    feedbackData = await getFeedbacks(token, 3); // Just get the last 5 for dashboard
     console.log("Feedback Data:", feedbackData);
   } catch (error) {
     console.error("Failed to fetch dashboard data:", error);
@@ -39,14 +39,13 @@ export default async function AdminDashboard() {
 
   const metrics = [
     { label: "Total Teachers", value: analytics?.overview.total_teachers ?? 0, color: "text-cyan-400" },
-    { label: "Total Assessments", value: analytics?.overview.total_assessments ?? 0, color: "text-white" },
-    { label: "Results Submitted", value: analytics?.overview.total_assessment_results ?? 0, color: "text-white" },
-    { label: "Total Strategies", value: analytics?.overview.total_strategies ?? 0, color: "text-white" },
-    { label: "Lesson Plans", value: analytics?.overview.total_lesson_plans ?? 0, color: "text-white" },
-    { label: "Feedbacks", value: analytics?.overview.total_feedbacks ?? 0, color: "text-white" },
-    { label: "Class Periods", value: analytics?.overview.total_class_periods ?? 0, color: "text-white" },
-    { label: "Friendships", value: analytics?.overview.total_friendships ?? 0, color: "text-white" },
-    { label: "Chat Messages", value: analytics?.overview.total_chat_messages ?? 0, color: "text-white" },
+    { label: "Total Assessments", value: analytics?.overview.total_assessments ?? 0, color: "text-cyan-400" },
+    { label: "Results Submitted", value: analytics?.overview.total_assessment_results ?? 0, color: "text-cyan-400" },
+    { label: "Total Strategies", value: analytics?.overview.total_strategies ?? 0, color: "text-cyan-400" },
+    { label: "Lesson Plans", value: analytics?.overview.total_lesson_plans ?? 0, color: "text-cyan-400" },
+    { label: "Feedbacks", value: analytics?.overview.total_feedbacks ?? 0, color: "text-cyan-400" },
+    { label: "Class Periods", value: analytics?.overview.total_class_periods ?? 0, color: "text-cyan-400" },
+    { label: "Friendships", value: analytics?.overview.total_friendships ?? 0, color: "text-cyan-400" },
   ];
 
   // Prepare breakdown data
@@ -83,7 +82,15 @@ export default async function AdminDashboard() {
           <Link href="/" className="text-xs font-bold text-white/40 hover:text-white transition-colors uppercase tracking-widest">
             Main Site
           </Link>
-          <UserButton />
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonPopoverActionButton: {
+                  display: 'flex',
+                },
+              }
+            }}
+          />
         </div>
       </header>
 
@@ -97,30 +104,63 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12 text-center lg:text-left">
-        {/* Teachers by State */}
+        {/* Teachers by State - Radial Chart */}
         <div className="glass-card p-8 rounded-[2.5rem]">
           <h2 className="text-lg font-bold mb-6 flex items-center justify-between">
-            Top Teacher Locations
+            Teacher Distribution
             <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Global States</span>
           </h2>
-          <div className="space-y-6">
-            {teachersByState.map(([state, count], idx) => {
-              const percentage = (count / (analytics?.overview.total_teachers ?? 1)) * 100;
-              return (
-                <div key={state} className="space-y-2">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-white/70">{state}</span>
-                    <span className="text-cyan-400">{count}</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-cyan-500/40 rounded-full transition-all duration-1000"
-                      style={{ width: `${percentage}%` }}
+          <div className="flex flex-col md:flex-row items-center gap-12">
+            <div className="relative w-48 h-48 flex items-center justify-center shrink-0">
+              <svg className="w-full h-full -rotate-90 transform-gpu" viewBox="0 0 100 100">
+                {/* Background Track */}
+                <circle cx="50" cy="50" r="45" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+
+                {teachersByState.map(([state, count], idx) => {
+                  const total = analytics?.overview.total_teachers ?? 1;
+                  const percentage = (count / total) * 100;
+                  // Wider spacing to prevent overlaying with the center text
+                  const radius = 45 - (idx * 6);
+                  const circumference = 2 * Math.PI * radius;
+                  const offset = circumference - (percentage / 100) * circumference;
+                  const colors = ["stroke-cyan-400", "stroke-blue-400", "stroke-indigo-400", "stroke-violet-400", "stroke-purple-400"];
+
+                  return (
+                    <circle
+                      key={state}
+                      cx="50"
+                      cy="50"
+                      r={radius}
+                      fill="transparent"
+                      className={`${colors[idx % colors.length]} transition-all duration-1000 ease-out`}
+                      strokeWidth="4"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={offset}
+                      strokeLinecap="round"
                     />
+                  );
+                })}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pt-1">
+                <p className="text-xl font-black text-white leading-none">{analytics?.overview.total_teachers ?? 0}</p>
+                <p className="text-[7px] text-white/30 font-bold uppercase tracking-[0.2em] mt-1">Total</p>
+              </div>
+            </div>
+
+            <div className="flex-1 w-full space-y-4">
+              {teachersByState.map(([state, count], idx) => {
+                const colors = ["bg-cyan-400", "bg-blue-400", "bg-indigo-400", "bg-violet-400", "bg-purple-400"];
+                return (
+                  <div key={state} className="flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${colors[idx % colors.length]}`} />
+                      <span className="text-xs font-bold text-white/60 group-hover:text-white transition-colors capitalize">{state}</span>
+                    </div>
+                    <span className="text-xs font-black text-white/40">{count}</span>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -131,17 +171,31 @@ export default async function AdminDashboard() {
             <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Content Metrics</span>
           </h2>
           <div className="space-y-4">
-            {assessmentsBySubject.map(([subject, count]) => (
-              <div key={subject} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                  <span className="text-sm font-bold capitalize">{subject}</span>
+            {assessmentsBySubject.map(([subject, count], idx) => {
+              // Now filling based on percentage of TOTAL assessments instead of relative to max
+              const totalAssessments = analytics?.overview.total_assessments ?? 1;
+              const barWidth = (count / totalAssessments) * 100;
+              return (
+                <div key={subject} className="group cursor-default">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-white/20">0{idx + 1}</span>
+                      <span className="text-sm font-bold capitalize text-white/60 group-hover:text-white transition-colors">{subject}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold text-white/20">{Math.round(barWidth)}%</span>
+                      <span className="text-xs font-black text-cyan-400/60">{count}</span>
+                    </div>
+                  </div>
+                  <div className="h-1 lg:h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-1000"
+                      style={{ width: `${barWidth}%` }}
+                    />
+                  </div>
                 </div>
-                <span className="text-xs font-black text-white/50 bg-white/5 px-2.5 py-1 rounded-lg">
-                  {count}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
