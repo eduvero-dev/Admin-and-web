@@ -26,8 +26,8 @@ export default async function AdminDashboard() {
 
   try {
     const token = await auth().then(a => a.getToken());
-    analytics = await getDashboardAnalytics(token);
-    feedbackData = await getFeedbacks(token, 3); // Just get the last 5 for dashboard
+    analytics = await getDashboardAnalytics(token, userId);
+    feedbackData = await getFeedbacks(token, userId, 3); // Just get the last 5 for dashboard
     console.log("Feedback Data:", feedbackData);
   } catch (error) {
     console.error("Failed to fetch dashboard data:", error);

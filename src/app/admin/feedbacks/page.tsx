@@ -8,7 +8,7 @@ export default async function AdminFeedbacks() {
   if (!userId) redirect("/admin");
 
   const token = await auth().then(a => a.getToken());
-  const data = await getFeedbacks(token, 500);
+  const data = await getFeedbacks(token, userId, 500);
   console.log("Feedback Data:", data);
 
   return (

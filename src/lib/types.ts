@@ -69,3 +69,66 @@ export interface FeedbackResponse {
   offset: number;
   feedbacks: Feedback[];
 }
+
+export interface TeacherSummary {
+  teacher_id: string;
+  name: string;
+  email: string;
+  inserted_at: string;
+}
+
+export interface TeacherListResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  teachers: TeacherSummary[];
+}
+
+export interface ClassPeriod {
+  class_id: number;
+  name: string;
+  num_students: number;
+}
+
+export interface TeacherAssessment {
+  assessment_id: number;
+  name: string;
+}
+
+export interface TeacherStrategy {
+  strategy_id: number;
+  title: string;
+}
+
+export interface TeacherLessonPlan {
+  lesson_plan_id: number;
+  title: string;
+}
+
+export interface TeacherDetail {
+  teacher_id: string;
+  name: string;
+  email: string;
+  inserted_at: string;
+  updated_at: string;
+  completed_onboarding: boolean;
+  deactivated: boolean;
+  grade_level: number;
+  years_teaching: number;
+  years_teaching_current_grade_level: number;
+  school_type: string;
+  state: string;
+  school_name: string | null;
+  school_model: string | null;
+  curriculum: string | null;
+  subjects_taught: string[] | null;
+  total_assessments: number;
+  total_strategies: number;
+  total_lesson_plans: number;
+  total_assessment_results: number;
+  total_class_periods: number;
+  class_periods?: ClassPeriod[];
+  assessments?: TeacherAssessment[];
+  strategies?: TeacherStrategy[];
+  lesson_plans?: TeacherLessonPlan[];
+}

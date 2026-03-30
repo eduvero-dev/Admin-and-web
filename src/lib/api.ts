@@ -1,4 +1,11 @@
-import { Assessment, DashboardAnalytics, FeedbackResponse, SubmitResultsPayload } from "./types";
+import { 
+  Assessment, 
+  DashboardAnalytics, 
+  FeedbackResponse, 
+  SubmitResultsPayload,
+  TeacherListResponse,
+  TeacherDetail
+} from "./types";
 
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
   const questions = data.questions.map((q: any, index: number) => {
@@ -67,7 +74,7 @@ export async function submitAssessmentResults(payload: SubmitResultsPayload): Pr
   return res.json();
 }
 
-export async function getDashboardAnalytics(token?: string | null): Promise<DashboardAnalytics> {
+export async function getDashboardAnalytics(token?: string | null, userId?: string | null): Promise<DashboardAnalytics> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
   const url = `${baseUrl}/v1/admin/analytics/dashboard`;
   console.log(`[API] Fetching dashboard analytics from: ${url}`);
@@ -78,6 +85,10 @@ export async function getDashboardAnalytics(token?: string | null): Promise<Dash
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  if (userId) {
+    headers['X-Clerk-User-Id'] = userId;
   }
 
   const res = await fetch(url, {
@@ -94,7 +105,7 @@ export async function getDashboardAnalytics(token?: string | null): Promise<Dash
   return res.json();
 }
 
-export async function getFeedbacks(token?: string | null, limit: number = 20, offset: number = 0): Promise<FeedbackResponse> {
+export async function getFeedbacks(token?: string | null, userId?: string | null, limit: number = 20, offset: number = 0): Promise<FeedbackResponse> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
   const url = `${baseUrl}/v1/admin/feedbacks?limit=${limit}&offset=${offset}`;
 
@@ -108,6 +119,10 @@ export async function getFeedbacks(token?: string | null, limit: number = 20, of
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  if (userId) {
+    headers['X-Clerk-User-Id'] = userId;
+  }
+
   const res = await fetch(url, {
     headers,
     next: { revalidate: 0 }
@@ -117,6 +132,70 @@ export async function getFeedbacks(token?: string | null, limit: number = 20, of
     const errorText = await res.text();
     console.error(`[API Error Feedbacks] Status: ${res.status}, Body: ${errorText}`);
     throw new Error(`Failed to fetch feedbacks: ${res.status} ${errorText}`);
+  }
+  
+  return res.json();
+}
+
+export async function getTeachers(token?: string | null, userId?: string | null, limit: number = 20, offset: number = 0): Promise<TeacherListResponse> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/teachers?limit=${limit}&offset=${offset}`;
+
+  console.log(`[API] Fetching teachers from: ${url}`);
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (userId) {
+    headers['X-Clerk-User-Id'] = userId;
+  }
+
+  const res = await fetch(url, {
+    headers,
+    next: { revalidate: 0 }
+  });
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`[API Error Teachers] Status: ${res.status}, Body: ${errorText}`);
+    throw new Error(`Failed to fetch teachers: ${res.status} ${errorText}`);
+  }
+  
+  return res.json();
+}
+
+export async function getTeacherById(token: string | null, userId: string | null, teacherId: string): Promise<TeacherDetail> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/teachers/${teacherId}`;
+
+  console.log(`[API] Fetching teacher details from: ${url}`);
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (userId) {
+    headers['X-Clerk-User-Id'] = userId;
+  }
+
+  const res = await fetch(url, {
+    headers,
+    next: { revalidate: 0 }
+  });
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`[API Error Teacher Detail] Status: ${res.status}, TeacherID: ${teacherId}, Body: ${errorText}`);
+    throw new Error(`Failed to fetch teacher details: ${res.status} ${errorText}`);
   }
   
   return res.json();
