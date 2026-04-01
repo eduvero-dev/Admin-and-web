@@ -4,7 +4,10 @@ import {
   FeedbackResponse, 
   SubmitResultsPayload,
   TeacherListResponse,
-  TeacherDetail
+  TeacherDetail,
+  AssessmentDetail,
+  StrategyDetail,
+  LessonPlanDetail
 } from "./types";
 
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
@@ -198,5 +201,44 @@ export async function getTeacherById(token: string | null, userId: string | null
     throw new Error(`Failed to fetch teacher details: ${res.status} ${errorText}`);
   }
   
+  return res.json();
+}
+
+export async function getAssessmentDetail(token: string | null, userId: string | null, assessmentId: string): Promise<AssessmentDetail> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/assessments/${assessmentId}`;
+  
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (userId) headers['X-Clerk-User-Id'] = userId;
+
+  const res = await fetch(url, { headers, next: { revalidate: 0 } });
+  if (!res.ok) throw new Error("Failed to fetch assessment detail");
+  return res.json();
+}
+
+export async function getStrategyDetail(token: string | null, userId: string | null, strategyId: string): Promise<StrategyDetail> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/strategies/${strategyId}`;
+  
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (userId) headers['X-Clerk-User-Id'] = userId;
+
+  const res = await fetch(url, { headers, next: { revalidate: 0 } });
+  if (!res.ok) throw new Error("Failed to fetch strategy detail");
+  return res.json();
+}
+
+export async function getLessonPlanDetail(token: string | null, userId: string | null, lessonId: string): Promise<LessonPlanDetail> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/lesson-plans/${lessonId}`;
+  
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (userId) headers['X-Clerk-User-Id'] = userId;
+
+  const res = await fetch(url, { headers, next: { revalidate: 0 } });
+  if (!res.ok) throw new Error("Failed to fetch lesson plan detail");
   return res.json();
 }

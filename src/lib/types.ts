@@ -57,6 +57,7 @@ export interface DashboardAnalytics {
 export interface Feedback {
   feedback_id: string;
   details: string;
+  screenshot_urls: string[];
   inserted_at: string;
   teacher_id: string;
   teacher_name: string;
@@ -103,6 +104,48 @@ export interface TeacherStrategy {
 export interface TeacherLessonPlan {
   lesson_plan_id: number;
   title: string;
+}
+
+export interface AssessmentDetail {
+  assessment_id: number;
+  teacher_id: string;
+  name: string;
+  subject: string;
+  sub_content: string;
+  grade_level: number;
+  num_questions: number;
+  assessment: any;
+  inserted_at: string;
+  updated_at: string;
+}
+
+export interface StrategyDetail {
+  strategy_id: number;
+  teacher_id: string;
+  title: string;
+  description: string;
+  strategy_type: string;
+  curriculum: string;
+  subject: string;
+  subdomain: string;
+  performance_tier: string;
+  scaffold_support: string;
+  implementation_hint: string;
+  student_needs: string;
+  inserted_at: string;
+  updated_at: string;
+}
+
+export interface LessonPlanDetail {
+  lesson_plan_id: number;
+  teacher_id: string;
+  title: string;
+  description: string;
+  lesson_plan: string;
+  usage_tags: string[];
+  class_ids: number[];
+  inserted_at: string;
+  updated_at: string;
 }
 
 export interface TeacherDetail {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { TeacherDetail } from "@/lib/types";
+import PortfolioDetailPanel from "./PortfolioDetailPanel";
 
 interface TeacherDetailContentProps {
   teacher: TeacherDetail;
@@ -10,8 +11,10 @@ interface TeacherDetailContentProps {
 
 export default function TeacherDetailContent({ teacher }: TeacherDetailContentProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedItem, setSelectedItem] = useState<{ id: string; type: "assessment" | "strategy" | "lesson" } | null>(null);
 
   const stats = [
+    // ... stats logic remains same
     { label: "Assessments", value: teacher.total_assessments, icon: (
       <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -74,7 +77,6 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
         </div>
         
         <div className="flex items-center gap-4">
-          {/* Universal Search */}
           <div className="relative group">
             <div className="absolute inset-0 bg-cyan-500/10 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
             <div className="relative flex items-center bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus-within:border-cyan-500/50 transition-all">
@@ -104,7 +106,6 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
         </div>
       </header>
 
-      {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
         {stats.map((stat, i) => (
           <div key={i} className="glass-card p-5 rounded-2xl border border-white/5 flex items-center gap-5 bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
@@ -118,8 +119,6 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* Column 1: Profile & Insight */}
         <div className="space-y-6">
           <div className="glass-card p-8 rounded-[2rem] border border-white/5">
             <h2 className="text-sm font-black text-white/40 uppercase tracking-widest mb-6 border-b border-white/5 pb-4 flex items-center gap-3">
@@ -153,7 +152,6 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
           </div>
         </div>
 
-        {/* Column 2: Portfolio - Assessments & Strategies */}
         <div className="space-y-6">
           <div className="glass-card p-8 rounded-[2rem] border border-white/5">
             <h2 className="text-sm font-black text-white/40 uppercase tracking-widest mb-6 border-b border-white/5 pb-4 flex items-center gap-3">
@@ -163,10 +161,17 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
             <div className="space-y-4">
               {filteredAssessments.length > 0 ? (
                 filteredAssessments.map((item) => (
-                  <div key={item.assessment_id} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-blue-500/30 transition-all group">
-                    <p className="text-sm font-bold text-white/60 group-hover:text-white leading-relaxed transition-colors">{item.name}</p>
-                    <p className="text-[9px] text-white/10 font-black uppercase tracking-widest mt-2">UUID: {item.assessment_id}</p>
-                  </div>
+                  <button 
+                    key={item.assessment_id} 
+                    onClick={() => setSelectedItem({ id: item.assessment_id.toString(), type: "assessment" })}
+                    className="w-full text-left p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-blue-500/30 hover:bg-white/[0.04] transition-all group relative overflow-hidden"
+                  >
+                    <p className="text-sm font-bold text-white/60 group-hover:text-white leading-relaxed transition-colors pr-8">{item.name}</p>
+                    <p className="text-[9px] text-white/10 font-black uppercase tracking-widest mt-2 group-hover:text-white/20">UUID: {item.assessment_id}</p>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                    </div>
+                  </button>
                 ))
               ) : (
                 <p className="text-xs text-white/10 font-bold uppercase tracking-widest text-center py-8">No results found</p>
@@ -182,10 +187,17 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
             <div className="space-y-4">
               {filteredStrategies.length > 0 ? (
                 filteredStrategies.map((item) => (
-                  <div key={item.strategy_id} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-violet-500/30 transition-all group">
-                    <p className="text-sm font-bold text-white/60 group-hover:text-white leading-relaxed transition-colors">{item.title}</p>
-                    <p className="text-[9px] text-white/10 font-black uppercase tracking-widest mt-2">ID: {item.strategy_id}</p>
-                  </div>
+                  <button 
+                    key={item.strategy_id} 
+                    onClick={() => setSelectedItem({ id: item.strategy_id.toString(), type: "strategy" })}
+                    className="w-full text-left p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-violet-500/30 hover:bg-white/[0.04] transition-all group relative overflow-hidden"
+                  >
+                    <p className="text-sm font-bold text-white/60 group-hover:text-white leading-relaxed transition-colors pr-8">{item.title}</p>
+                    <p className="text-[9px] text-white/10 font-black uppercase tracking-widest mt-2 group-hover:text-white/20">ID: {item.strategy_id}</p>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                    </div>
+                  </button>
                 ))
               ) : (
                 <p className="text-xs text-white/10 font-bold uppercase tracking-widest text-center py-8">No results found</p>
@@ -194,7 +206,6 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
           </div>
         </div>
 
-        {/* Column 3: Lessons & Classes */}
         <div className="space-y-6">
           <div className="glass-card p-8 rounded-[2rem] border border-white/5">
             <h2 className="text-sm font-black text-white/40 uppercase tracking-widest mb-6 border-b border-white/5 pb-4 flex items-center gap-3">
@@ -204,10 +215,17 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
             <div className="space-y-4">
               {filteredLessons.length > 0 ? (
                 filteredLessons.map((item) => (
-                  <div key={item.lesson_plan_id} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-indigo-500/30 transition-all group">
-                    <p className="text-sm font-bold text-white/60 group-hover:text-white leading-relaxed transition-colors">{item.title}</p>
-                    <p className="text-[9px] text-white/10 font-black uppercase tracking-widest mt-2">ID: {item.lesson_plan_id}</p>
-                  </div>
+                  <button 
+                    key={item.lesson_plan_id} 
+                    onClick={() => setSelectedItem({ id: item.lesson_plan_id.toString(), type: "lesson" })}
+                    className="w-full text-left p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-indigo-500/30 hover:bg-white/[0.04] transition-all group relative overflow-hidden"
+                  >
+                    <p className="text-sm font-bold text-white/60 group-hover:text-white leading-relaxed transition-colors pr-8">{item.title}</p>
+                    <p className="text-[9px] text-white/10 font-black uppercase tracking-widest mt-2 group-hover:text-white/20">ID: {item.lesson_plan_id}</p>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                    </div>
+                  </button>
                 ))
               ) : (
                 <p className="text-xs text-white/10 font-bold uppercase tracking-widest text-center py-8">No results found</p>
@@ -240,8 +258,15 @@ export default function TeacherDetailContent({ teacher }: TeacherDetailContentPr
             </div>
           </div>
         </div>
-
       </div>
+
+      {/* Portfolio Detail Slide-over Panel */}
+      <PortfolioDetailPanel 
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+        itemId={selectedItem?.id || null}
+        type={selectedItem?.type || null}
+      />
     </main>
   );
 }

@@ -27,7 +27,7 @@ export default async function AdminDashboard() {
   try {
     const token = await auth().then(a => a.getToken());
     analytics = await getDashboardAnalytics(token, userId);
-    feedbackData = await getFeedbacks(token, userId, 3); // Just get the last 5 for dashboard
+    feedbackData = await getFeedbacks(token, userId, 3);
     console.log("Feedback Data:", feedbackData);
   } catch (error) {
     console.error("Failed to fetch dashboard data:", error);
@@ -239,9 +239,17 @@ export default async function AdminDashboard() {
                     {new Date(fb.inserted_at).toLocaleDateString()}
                   </span>
                 </div>
-                <p className="text-[11px] text-white/40 leading-relaxed line-clamp-1">
-                  {fb.details}
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-[11px] text-white/40 leading-relaxed line-clamp-1 flex-1 mr-4">
+                    {fb.details}
+                  </p>
+                  {fb.screenshot_urls && fb.screenshot_urls.length > 0 && (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20">
+                      <svg className="w-2.5 h-2.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a1 1 0 011.414 0L15 16m-6-6h.01M17 21H7a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2z" /></svg>
+                      <span className="text-[8px] font-black text-cyan-400 uppercase tracking-widest">{fb.screenshot_urls.length}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
             {(!feedbackData?.feedbacks || feedbackData.feedbacks.length === 0) && (
