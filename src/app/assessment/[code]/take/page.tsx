@@ -187,8 +187,8 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
 
       {/* ── Body ── */}
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 pt-6 pb-40 overflow-y-auto z-10 space-y-4">
-        {/* Passage (if any) — show only on first question */}
-        {assessment.passage && currentQ === 0 && (
+        {/* Passage (if any) */}
+        {assessment.passage && (
           <div className="glass-card rounded-2xl p-6 border-cyan-500/10 mb-4">
             <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] mb-3">Reading Passage</p>
             <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">{assessment.passage}</p>
