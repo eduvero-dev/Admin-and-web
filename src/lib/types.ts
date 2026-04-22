@@ -175,3 +175,15 @@ export interface TeacherDetail {
   strategies?: TeacherStrategy[];
   lesson_plans?: TeacherLessonPlan[];
 }
+
+export interface SubscriptionPlan {
+  plan_name: string;
+  price_id: string;
+  price_amount: string;
+  billing_period: string;
+  features: string[];
+}
+
+export interface SubscriptionPlansResponse {
+  plans: SubscriptionPlan[];
+}

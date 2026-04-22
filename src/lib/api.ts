@@ -7,7 +7,8 @@ import {
   TeacherDetail,
   AssessmentDetail,
   StrategyDetail,
-  LessonPlanDetail
+  LessonPlanDetail,
+  SubscriptionPlansResponse
 } from "./types";
 
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
@@ -240,5 +241,58 @@ export async function getLessonPlanDetail(token: string | null, userId: string |
 
   const res = await fetch(url, { headers, next: { revalidate: 0 } });
   if (!res.ok) throw new Error("Failed to fetch lesson plan detail");
+  return res.json();
+}
+
+export async function getSubscriptionPlans(): Promise<SubscriptionPlansResponse> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://spiced-cider-production.up.railway.app";
+
+  const url = `${baseUrl}/v1/payments/plans`;
+  const res = await fetch(url, {
+    headers: { accept: "application/json" },
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to fetch subscription plans: ${res.status} ${errorText}`);
+  }
+
+  return res.json();
+}
+
+export async function createStripeCheckout(params: {
+  priceId: string;
+  userId?: string | null;
+}): Promise<{ checkout_url: string }> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_PAYMENTS_API_URL ||
+    process.env.PAYMENTS_API_URL ||
+    "https://spiced-cider-production.up.railway.app";
+
+  const url = `${baseUrl}/v1/payments/checkout`;
+  const headers: HeadersInit = {
+    accept: "application/json",
+    "Content-Type": "application/json",
+  };
+
+  if (params.userId) {
+    headers["X-Clerk-User-Id"] = params.userId;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ price_id: params.priceId }),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to create checkout: ${res.status} ${errorText}`);
+  }
+
   return res.json();
 }
