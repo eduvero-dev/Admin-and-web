@@ -9,8 +9,23 @@ function normalizePlanName(name: string) {
 export default async function ImpactProPlanPage(props: {
   searchParams?: Promise<{ userId?: string }>;
 }) {
-  const data = await getSubscriptionPlans();
-  const plan = data.plans.find((p) => normalizePlanName(p.plan_name) === "impact pro");
+  let plan:
+    | {
+        plan_name: string;
+        price_id: string;
+        price_amount: string;
+        billing_period: string;
+        features: string[];
+      }
+    | undefined;
+  let planError = "";
+
+  try {
+    const data = await getSubscriptionPlans();
+    plan = data.plans.find((p) => normalizePlanName(p.plan_name) === "impact pro");
+  } catch (e) {
+    planError = e instanceof Error ? e.message : "Failed to load subscription plan.";
+  }
   const sp = await props.searchParams;
   const userId = sp?.userId?.trim() || "";
 
@@ -113,8 +128,18 @@ export default async function ImpactProPlanPage(props: {
               </div>
             </>
           ) : (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-300 text-xs rounded-xl px-4 py-3 text-center">
-              Couldn’t find the “Impact Pro” plan from the plans endpoint.
+            <div className="space-y-3">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-300 text-xs rounded-xl px-4 py-3 text-center">
+                {planError
+                  ? "Couldn’t load subscription plans on the server."
+                  : "Couldn’t find the “Impact Pro” plan from the plans endpoint."}
+              </div>
+              {planError && (
+                <div className="bg-white/5 border border-white/10 text-white/40 text-[11px] rounded-xl px-4 py-3">
+                  <span className="text-white/60 font-bold">Details:</span>{" "}
+                  <span className="font-mono break-all">{planError}</span>
+                </div>
+              )}
             </div>
           )}
         </div>

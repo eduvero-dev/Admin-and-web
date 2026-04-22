@@ -246,7 +246,8 @@ export async function getLessonPlanDetail(token: string | null, userId: string |
 
 export async function getSubscriptionPlans(): Promise<SubscriptionPlansResponse> {
   const baseUrl =
-    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_PAYMENTS_API_URL ||
+    process.env.PAYMENTS_API_URL ||
     "https://spiced-cider-production.up.railway.app";
 
   const url = `${baseUrl}/v1/payments/plans`;
