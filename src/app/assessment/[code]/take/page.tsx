@@ -39,7 +39,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
     if (confirm("Are you sure you want to exit the assessment? Your progress will not be saved if you haven't submitted.")) {
       stop(); // Stop any ongoing speech
       if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       }
       router.push("/");
     }
@@ -77,7 +77,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
       const scoreVal = Math.round((correct / total) * 100);
 
       const now = new Date().toISOString().split("T")[0];
-      
+
       // Transform answers (question_id -> label) to responses (index -> label) 
       // to match mobile app's backend expectations
       const responses: Record<string, string> = {};
@@ -97,10 +97,10 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           submitted: now, // Backend expects simple date string
           responses: responses,
         });
-        
+
         // Exit fullscreen on successful submission
         if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
+          document.exitFullscreen().catch(() => { });
         }
 
         setScore(scoreVal);
@@ -111,7 +111,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
         if (auto) {
           // Exit fullscreen on auto-submit
           if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {});
+            document.exitFullscreen().catch(() => { });
           }
           setScore(scoreVal);
           setSubmitted(true);
@@ -157,7 +157,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             <div className="text-6xl mb-6 drop-shadow-[0_0_20px_rgba(239,68,68,0.4)]">⚠️</div>
             <h2 className="text-2xl font-bold text-white mb-3">Security Violation!</h2>
             <p className="text-white/60 text-sm mb-4 leading-relaxed">
-              You left the assessment window or exited fullscreen mode. 
+              You left the assessment window or exited fullscreen mode.
               <br /><strong className="text-red-400 uppercase tracking-widest text-[10px]">This is your final warning.</strong>
             </p>
             <p className="text-white/40 text-[11px] mb-8">
@@ -195,13 +195,11 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
               {/* Read Aloud Toggle */}
               <button
                 onClick={toggleReadAloud}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all font-bold text-xs relative ${
-                  readAloudEnabled
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all font-bold text-xs relative ${readAloudEnabled
                     ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
                     : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:border-white/20"
-                }`}
+                  }`}
               >
-                <span className="text-lg leading-none">{readAloudEnabled ? "🔊" : "🔇"}</span>
                 <span className="uppercase tracking-wider hidden sm:inline">Read Aloud</span>
                 {isUsingPremium && readAloudEnabled && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.6)] animate-pulse" title="Premium Voice Active" />
@@ -232,9 +230,8 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] mb-3">Reading Passage</p>
             <p
               onClick={() => handleTextClick(assessment.passage!)}
-              className={`text-white/70 text-sm leading-relaxed whitespace-pre-line ${
-                readAloudEnabled ? "cursor-pointer hover:text-white/90 transition-colors" : ""
-              }`}
+              className={`text-white/70 text-sm leading-relaxed whitespace-pre-line ${readAloudEnabled ? "cursor-pointer hover:text-white/90 transition-colors" : ""
+                }`}
             >
               {assessment.passage}
             </p>
@@ -251,9 +248,8 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           <p className="text-[10px] text-white/30 font-bold uppercase tracking-[0.2em] mb-3">Question {currentQ + 1}</p>
           <p
             onClick={() => handleTextClick(q.text)}
-            className={`text-white font-semibold text-lg leading-relaxed ${
-              readAloudEnabled ? "cursor-pointer hover:text-cyan-400 transition-colors" : ""
-            }`}
+            className={`text-white font-semibold text-lg leading-relaxed ${readAloudEnabled ? "cursor-pointer hover:text-cyan-400 transition-colors" : ""
+              }`}
           >
             {q.text}
           </p>
@@ -272,15 +268,13 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
                     handleTextClick(`${opt.label}. ${opt.text}`);
                   }
                 }}
-                className={`w-full text-left px-5 py-5 rounded-2xl border-2 transition-all active:scale-[0.98] flex items-center gap-4 ${
-                  selected
+                className={`w-full text-left px-5 py-5 rounded-2xl border-2 transition-all active:scale-[0.98] flex items-center gap-4 ${selected
                     ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
                     : "border-white/5 bg-white/[0.02] text-white/50 hover:bg-white/[0.05] hover:border-white/10"
-                }`}
+                  }`}
               >
-                <span className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-black uppercase transition-all ${
-                  selected ? "bg-cyan-500 border-cyan-500 text-[#021a1d]" : "border-white/10 text-white/20"
-                }`}>
+                <span className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-black uppercase transition-all ${selected ? "bg-cyan-500 border-cyan-500 text-[#021a1d]" : "border-white/10 text-white/20"
+                  }`}>
                   {opt.label}
                 </span>
                 <span className="text-sm font-bold tracking-tight">{opt.text}</span>
@@ -330,13 +324,12 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             <button
               key={q2.id}
               onClick={() => setCurrentQ(idx)}
-              className={`w-6 h-6 rounded-lg text-[9px] font-black transition-all ${
-                idx === currentQ
+              className={`w-6 h-6 rounded-lg text-[9px] font-black transition-all ${idx === currentQ
                   ? "bg-cyan-500 text-[#021a1d] shadow-[0_0_10px_rgba(6,182,212,0.4)]"
                   : answers[q2.id]
-                  ? "bg-white/20 text-white/50"
-                  : "bg-white/5 text-white/10 hover:bg-white/10"
-              }`}
+                    ? "bg-white/20 text-white/50"
+                    : "bg-white/5 text-white/10 hover:bg-white/10"
+                }`}
             >
               {idx + 1}
             </button>
@@ -347,9 +340,9 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
       {/* Watermark overlay */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] flex items-center justify-center overflow-hidden">
         <div className="relative w-[120%] h-[120%] scale-150 transform-gpu rotate-[10deg]">
-          <Image 
-            src="/adaptive-icon.png" 
-            alt="Watermark" 
+          <Image
+            src="/adaptive-icon.png"
+            alt="Watermark"
             fill
             className="object-contain filter blur-[15px]"
           />
