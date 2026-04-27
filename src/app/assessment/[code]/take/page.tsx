@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
+import { useHumanizedTTS } from "@/hooks/useHumanizedTTS";
 import { submitAssessmentResults } from "@/lib/api";
 import { useAssessmentStore } from "@/store/assessmentStore";
 
@@ -18,7 +19,11 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
     setScore,
     setAutoSubmitted,
     autoSubmitted,
+    readAloudEnabled,
+    setReadAloudEnabled,
   } = useAssessmentStore();
+
+  const { speak, stop, isUsingPremium } = useHumanizedTTS(readAloudEnabled);
 
   const [showWarning, setShowWarning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -32,12 +37,29 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
 
   const handleExit = useCallback(() => {
     if (confirm("Are you sure you want to exit the assessment? Your progress will not be saved if you haven't submitted.")) {
+      stop(); // Stop any ongoing speech
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
       router.push("/");
     }
-  }, [router]);
+  }, [router, stop]);
+
+  const toggleReadAloud = useCallback(() => {
+    if (readAloudEnabled) {
+      stop(); // Stop speech when disabling
+    }
+    setReadAloudEnabled(!readAloudEnabled);
+  }, [readAloudEnabled, setReadAloudEnabled, stop]);
+
+  const handleTextClick = useCallback(
+    (text: string) => {
+      if (readAloudEnabled) {
+        speak(text);
+      }
+    },
+    [readAloudEnabled, speak]
+  );
 
   const doSubmit = useCallback(
     async (auto = false) => {
@@ -161,7 +183,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
               </div>
               <div>
                 <h1 className="text-base font-bold leading-tight max-w-[200px] truncate">{assessment.title}</h1>
-                <button 
+                <button
                   onClick={handleExit}
                   className="text-[9px] font-bold uppercase tracking-[0.15em] text-red-400/80 mt-1 hover:text-red-400 transition-colors flex items-center gap-1.5"
                 >
@@ -169,9 +191,26 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
                 </button>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest mb-1">Status</p>
-              <p className="text-white font-black text-xl tabular-nums">{answeredCount}<span className="text-white/20 px-1">/</span>{totalQ}</p>
+            <div className="flex items-center gap-4">
+              {/* Read Aloud Toggle */}
+              <button
+                onClick={toggleReadAloud}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all font-bold text-xs relative ${
+                  readAloudEnabled
+                    ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                    : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:border-white/20"
+                }`}
+              >
+                <span className="text-lg leading-none">{readAloudEnabled ? "🔊" : "🔇"}</span>
+                <span className="uppercase tracking-wider hidden sm:inline">Read Aloud</span>
+                {isUsingPremium && readAloudEnabled && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.6)] animate-pulse" title="Premium Voice Active" />
+                )}
+              </button>
+              <div className="text-right">
+                <p className="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest mb-1">Status</p>
+                <p className="text-white font-black text-xl tabular-nums">{answeredCount}<span className="text-white/20 px-1">/</span>{totalQ}</p>
+              </div>
             </div>
           </div>
           {/* Progress bar */}
@@ -191,14 +230,33 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
         {assessment.passage && (
           <div className="glass-card rounded-2xl p-6 border-cyan-500/10 mb-4">
             <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] mb-3">Reading Passage</p>
-            <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">{assessment.passage}</p>
+            <p
+              onClick={() => handleTextClick(assessment.passage!)}
+              className={`text-white/70 text-sm leading-relaxed whitespace-pre-line ${
+                readAloudEnabled ? "cursor-pointer hover:text-white/90 transition-colors" : ""
+              }`}
+            >
+              {assessment.passage}
+            </p>
+            {readAloudEnabled && (
+              <p className="text-cyan-400/50 text-[9px] font-bold uppercase tracking-wider mt-3 flex items-center gap-1.5">
+                <span>💡</span> Click text to hear it read aloud
+              </p>
+            )}
           </div>
         )}
 
         {/* Question Card */}
         <div className="glass-card rounded-[1.5rem] p-7 mb-6">
           <p className="text-[10px] text-white/30 font-bold uppercase tracking-[0.2em] mb-3">Question {currentQ + 1}</p>
-          <p className="text-white font-semibold text-lg leading-relaxed">{q.text}</p>
+          <p
+            onClick={() => handleTextClick(q.text)}
+            className={`text-white font-semibold text-lg leading-relaxed ${
+              readAloudEnabled ? "cursor-pointer hover:text-cyan-400 transition-colors" : ""
+            }`}
+          >
+            {q.text}
+          </p>
         </div>
 
         {/* Options */}
@@ -208,7 +266,12 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             return (
               <button
                 key={opt.id}
-                onClick={() => setAnswer(q.id, opt.label)}
+                onClick={() => {
+                  setAnswer(q.id, opt.label);
+                  if (readAloudEnabled) {
+                    handleTextClick(`${opt.label}. ${opt.text}`);
+                  }
+                }}
                 className={`w-full text-left px-5 py-5 rounded-2xl border-2 transition-all active:scale-[0.98] flex items-center gap-4 ${
                   selected
                     ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)]"

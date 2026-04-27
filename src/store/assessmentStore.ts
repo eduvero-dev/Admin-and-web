@@ -6,18 +6,21 @@ interface AssessmentStore {
   assessment: Assessment | null;
   accessCode: string;
   studentName: string;
-  
+
   // Answers: questionId -> option label
   answers: Record<string, string>;
-  
+
   // Anti-cheat
   tabSwitchCount: number;
   autoSubmitted: boolean;
-  
+
   // UI state
   currentQuestionIndex: number;
   submitted: boolean;
   score: number | null;
+
+  // Read Aloud
+  readAloudEnabled: boolean;
 
   // Actions
   setAssessment: (a: Assessment) => void;
@@ -29,6 +32,7 @@ interface AssessmentStore {
   setCurrentQuestionIndex: (i: number) => void;
   setSubmitted: (val: boolean) => void;
   setScore: (score: number) => void;
+  setReadAloudEnabled: (enabled: boolean) => void;
   reset: () => void;
 }
 
@@ -42,6 +46,7 @@ const initialState = {
   currentQuestionIndex: 0,
   submitted: false,
   score: null,
+  readAloudEnabled: false,
 };
 
 export const useAssessmentStore = create<AssessmentStore>((set) => ({
@@ -58,5 +63,6 @@ export const useAssessmentStore = create<AssessmentStore>((set) => ({
   setCurrentQuestionIndex: (currentQuestionIndex) => set({ currentQuestionIndex }),
   setSubmitted: (submitted) => set({ submitted }),
   setScore: (score) => set({ score }),
+  setReadAloudEnabled: (readAloudEnabled) => set({ readAloudEnabled }),
   reset: () => set(initialState),
 }));
