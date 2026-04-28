@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
+import { Volume2, VolumeX, Pause, Play, RotateCcw } from "lucide-react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useHumanizedTTS } from "@/hooks/useHumanizedTTS";
 import { submitAssessmentResults } from "@/lib/api";
@@ -23,7 +24,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
     setReadAloudEnabled,
   } = useAssessmentStore();
 
-  const { speak, stop, isUsingPremium } = useHumanizedTTS(readAloudEnabled);
+  const { speak, stop, pause, resume, replay, isUsingPremium, isSpeaking, isPaused, lastSpokenText } = useHumanizedTTS(readAloudEnabled);
 
   const [showWarning, setShowWarning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -191,20 +192,53 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {/* Read Aloud Toggle */}
               <button
                 onClick={toggleReadAloud}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all font-bold text-xs relative ${readAloudEnabled
-                    ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                    : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:border-white/20"
+                className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl border-2 transition-all font-bold text-xs relative ${readAloudEnabled
+                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                  : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:border-white/20"
                   }`}
               >
+                {readAloudEnabled ? (
+                  <Volume2 className="w-4 h-4" />
+                ) : (
+                  <VolumeX className="w-4 h-4" />
+                )}
                 <span className="uppercase tracking-wider hidden sm:inline">Read Aloud</span>
                 {isUsingPremium && readAloudEnabled && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.6)] animate-pulse" title="Premium Voice Active" />
                 )}
               </button>
+
+              {readAloudEnabled && (
+                <div className="flex items-center gap-1.5">
+                  {isSpeaking && (
+                    <button
+                      onClick={isPaused ? resume : pause}
+                      className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-cyan-400 transition-all"
+                      title={isPaused ? "Resume" : "Pause"}
+                    >
+                      {isPaused ? (
+                        <Play className="w-4 h-4" />
+                      ) : (
+                        <Pause className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+
+                  {lastSpokenText && (
+                    <button
+                      onClick={replay}
+                      className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-cyan-400 transition-all"
+                      title="Replay last"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="text-right">
                 <p className="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest mb-1">Status</p>
                 <p className="text-white font-black text-xl tabular-nums">{answeredCount}<span className="text-white/20 px-1">/</span>{totalQ}</p>
@@ -269,8 +303,8 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
                   }
                 }}
                 className={`w-full text-left px-5 py-5 rounded-2xl border-2 transition-all active:scale-[0.98] flex items-center gap-4 ${selected
-                    ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
-                    : "border-white/5 bg-white/[0.02] text-white/50 hover:bg-white/[0.05] hover:border-white/10"
+                  ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
+                  : "border-white/5 bg-white/[0.02] text-white/50 hover:bg-white/[0.05] hover:border-white/10"
                   }`}
               >
                 <span className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-black uppercase transition-all ${selected ? "bg-cyan-500 border-cyan-500 text-[#021a1d]" : "border-white/10 text-white/20"
@@ -325,10 +359,10 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
               key={q2.id}
               onClick={() => setCurrentQ(idx)}
               className={`w-6 h-6 rounded-lg text-[9px] font-black transition-all ${idx === currentQ
-                  ? "bg-cyan-500 text-[#021a1d] shadow-[0_0_10px_rgba(6,182,212,0.4)]"
-                  : answers[q2.id]
-                    ? "bg-white/20 text-white/50"
-                    : "bg-white/5 text-white/10 hover:bg-white/10"
+                ? "bg-cyan-500 text-[#021a1d] shadow-[0_0_10px_rgba(6,182,212,0.4)]"
+                : answers[q2.id]
+                  ? "bg-white/20 text-white/50"
+                  : "bg-white/5 text-white/10 hover:bg-white/10"
                 }`}
             >
               {idx + 1}

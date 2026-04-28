@@ -4,6 +4,10 @@ export function useReadAloud(enabled: boolean) {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const currentTextRef = useRef<string>("");
+  const [lastSpokenText, setLastSpokenText] = useState<string>("");
 
   // Load available voices
   useEffect(() => {
@@ -68,6 +72,10 @@ export function useReadAloud(enabled: boolean) {
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
 
+      // Store current text for replay
+      currentTextRef.current = text;
+      setLastSpokenText(text);
+
       // Create new utterance with enhanced settings
       const utterance = new SpeechSynthesisUtterance(text);
 
@@ -81,19 +89,77 @@ export function useReadAloud(enabled: boolean) {
       utterance.pitch = 1.0; // Natural pitch
       utterance.volume = 1.0; // Full volume
 
+      // Event listeners
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        setIsPaused(false);
+      };
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+      };
+
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+      };
+
+      utterance.onpause = () => {
+        setIsPaused(true);
+      };
+
+      utterance.onresume = () => {
+        setIsPaused(false);
+      };
+
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     },
     [enabled, selectedVoice]
   );
 
+  const pause = useCallback(() => {
+    if (isSpeaking && !isPaused) {
+      window.speechSynthesis.pause();
+      setIsPaused(true);
+    }
+  }, [isSpeaking, isPaused]);
+
+  const resume = useCallback(() => {
+    if (isSpeaking && isPaused) {
+      window.speechSynthesis.resume();
+      setIsPaused(false);
+    }
+  }, [isSpeaking, isPaused]);
+
+  const replay = useCallback(() => {
+    if (lastSpokenText) {
+      speak(lastSpokenText);
+    }
+  }, [lastSpokenText, speak]);
+
   const stop = useCallback(() => {
     window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+    setIsPaused(false);
   }, []);
 
   const changeVoice = useCallback((voice: SpeechSynthesisVoice) => {
     setSelectedVoice(voice);
   }, []);
 
-  return { speak, stop, voices, selectedVoice, changeVoice };
+  return {
+    speak,
+    stop,
+    pause,
+    resume,
+    replay,
+    voices,
+    selectedVoice,
+    changeVoice,
+    isSpeaking,
+    isPaused,
+    lastSpokenText
+  };
 }

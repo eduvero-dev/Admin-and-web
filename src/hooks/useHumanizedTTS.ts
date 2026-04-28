@@ -46,9 +46,15 @@ export function useHumanizedTTS(enabled: boolean) {
   return {
     speak,
     stop,
+    pause: browserTTS.pause,
+    resume: browserTTS.resume,
+    replay: browserTTS.replay,
     voices: browserTTS.voices,
     selectedVoice: browserTTS.selectedVoice,
     changeVoice: browserTTS.changeVoice,
     isUsingPremium: hasElevenLabsKey,
+    isSpeaking: browserTTS.isSpeaking,
+    isPaused: browserTTS.isPaused,
+    lastSpokenText: browserTTS.lastSpokenText,
   };
 }
