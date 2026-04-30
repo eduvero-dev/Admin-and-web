@@ -62,6 +62,10 @@ export async function getAssessmentByCode(accessCode: string): Promise<Assessmen
   const classId = data.assessment?.class_id || data.access_code?.class_id;
   if (classId) transformed.class_id = classId.toString();
 
+  // Add read_aloud and duration_minutes from the parent response
+  transformed.read_aloud = data.read_aloud ?? false;
+  transformed.duration_minutes = data.duration_minutes ?? null;
+
   return transformed;
 }
 

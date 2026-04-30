@@ -64,10 +64,7 @@ export default function SubmittedPage() {
           <div className="p-8 space-y-6">
             {/* Score Display */}
             {score !== null ? (
-              <div className="bg-white/[0.03] border border-white/5 rounded-3xl p-8 text-center">
-                <div className="text-4xl font-black text-white mb-2">{score}%</div>
-                <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em]">{correct} of {total} Correct</p>
-              </div>
+              <></>
             ) : (
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
                 <p className="text-white/50 text-sm">Your results have been securely transmitted to your teacher.</p>

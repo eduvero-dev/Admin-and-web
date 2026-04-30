@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
-import { Volume2, VolumeX, Pause, Play, RotateCcw } from "lucide-react";
+import { Volume2, VolumeX, Pause, Play, RotateCcw, CheckCircle2 } from "lucide-react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useHumanizedTTS } from "@/hooks/useHumanizedTTS";
 import { submitAssessmentResults } from "@/lib/api";
@@ -24,12 +24,29 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
     setReadAloudEnabled,
   } = useAssessmentStore();
 
-  const { speak, stop, pause, resume, replay, isUsingPremium, isSpeaking, isPaused, lastSpokenText } = useHumanizedTTS(readAloudEnabled);
+  // Check if read aloud is enabled for this assessment
+  const isReadAloudAvailable = assessment?.read_aloud ?? false;
+
+  // Debug logging
+  useEffect(() => {
+    if (assessment) {
+      console.log('[Read Aloud] Assessment loaded:', {
+        title: assessment.title,
+        read_aloud: assessment.read_aloud,
+        isReadAloudAvailable
+      });
+    }
+  }, [assessment, isReadAloudAvailable]);
+
+  const { speak, stop, pause, resume, replay, isUsingPremium, isSpeaking, isPaused, lastSpokenText } = useHumanizedTTS(readAloudEnabled && isReadAloudAvailable);
 
   const [showWarning, setShowWarning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [currentQ, setCurrentQ] = useState(0);
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // If store is empty (page refresh), redirect home
   useEffect(() => {
@@ -144,6 +161,30 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   const totalQ = assessment.questions.length;
   const progress = ((currentQ + 1) / totalQ) * 100;
   const answeredCount = Object.keys(answers).length;
+  const isLastQuestion = currentQ === totalQ - 1;
+
+  // Calculate missed questions: unanswered + incorrect
+  const unansweredCount = totalQ - answeredCount;
+  const incorrectCount = assessment.questions.filter(
+    (question) => answers[question.id] && answers[question.id] !== question.correctAnswer
+  ).length;
+  const missedQuestionsCount = unansweredCount + incorrectCount;
+
+  const handleStartReview = useCallback(() => {
+    setIsReviewMode(true);
+    setHasReviewed(true);
+    setShowConfirmation(false);
+    setCurrentQ(0); // Go back to first question
+  }, []);
+
+  const handleEndReview = useCallback(() => {
+    setIsReviewMode(false);
+    setShowConfirmation(true); // Return to confirmation screen
+  }, []);
+
+  const handleContinueToConfirmation = useCallback(() => {
+    setShowConfirmation(true);
+  }, []);
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-[#050a0f] flex flex-col font-sans selection:bg-cyan-500/30">
@@ -193,51 +234,55 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
               </div>
             </div>
             <div className="flex items-center gap-2 md:gap-4">
-              {/* Read Aloud Toggle */}
-              <button
-                onClick={toggleReadAloud}
-                className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl border-2 transition-all font-bold text-xs relative ${readAloudEnabled
-                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                  : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:border-white/20"
-                  }`}
-              >
-                {readAloudEnabled ? (
-                  <Volume2 className="w-4 h-4" />
-                ) : (
-                  <VolumeX className="w-4 h-4" />
-                )}
-                <span className="uppercase tracking-wider hidden sm:inline">Read Aloud</span>
-                {isUsingPremium && readAloudEnabled && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.6)] animate-pulse" title="Premium Voice Active" />
-                )}
-              </button>
+              {/* Read Aloud Toggle - Only show if read_aloud is true */}
+              {isReadAloudAvailable && (
+                <>
+                  <button
+                    onClick={toggleReadAloud}
+                    className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl border-2 transition-all font-bold text-xs relative ${readAloudEnabled
+                      ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                      : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:border-white/20"
+                      }`}
+                  >
+                    {readAloudEnabled ? (
+                      <Volume2 className="w-4 h-4" />
+                    ) : (
+                      <VolumeX className="w-4 h-4" />
+                    )}
+                    <span className="uppercase tracking-wider hidden sm:inline">Read Aloud</span>
+                    {isUsingPremium && readAloudEnabled && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.6)] animate-pulse" title="Premium Voice Active" />
+                    )}
+                  </button>
 
-              {readAloudEnabled && (
-                <div className="flex items-center gap-1.5">
-                  {isSpeaking && (
-                    <button
-                      onClick={isPaused ? resume : pause}
-                      className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-cyan-400 transition-all"
-                      title={isPaused ? "Resume" : "Pause"}
-                    >
-                      {isPaused ? (
-                        <Play className="w-4 h-4" />
-                      ) : (
-                        <Pause className="w-4 h-4" />
+                  {readAloudEnabled && (
+                    <div className="flex items-center gap-1.5">
+                      {isSpeaking && (
+                        <button
+                          onClick={isPaused ? resume : pause}
+                          className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-cyan-400 transition-all"
+                          title={isPaused ? "Resume" : "Pause"}
+                        >
+                          {isPaused ? (
+                            <Play className="w-4 h-4" />
+                          ) : (
+                            <Pause className="w-4 h-4" />
+                          )}
+                        </button>
                       )}
-                    </button>
-                  )}
 
-                  {lastSpokenText && (
-                    <button
-                      onClick={replay}
-                      className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-cyan-400 transition-all"
-                      title="Replay last"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
+                      {lastSpokenText && (
+                        <button
+                          onClick={replay}
+                          className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-cyan-400 transition-all"
+                          title="Replay last"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
               <div className="text-right">
                 <p className="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest mb-1">Status</p>
@@ -256,8 +301,69 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
         </div>
       </div>
 
-      {/* ── Body ── */}
-      <div className="flex-1 max-w-2xl mx-auto w-full px-4 pt-6 pb-40 overflow-y-auto z-10 space-y-4">
+      {/* ── Confirmation Screen ── */}
+      {showConfirmation ? (
+        <div className="flex-1 max-w-2xl mx-auto w-full px-4 pt-6 pb-40 overflow-y-auto z-10 flex items-center justify-center">
+          <div className="glass-card rounded-[2.5rem] p-10 max-w-md w-full text-center">
+            <div className="flex justify-center mb-6">
+              <CheckCircle2 className="w-20 h-20 text-cyan-400" strokeWidth={1.5} />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">Ready to Submit?</h2>
+
+            {missedQuestionsCount > 0 ? (
+              <>
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-6">
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <span className="text-3xl">⚠️</span>
+                    <p className="text-amber-400 font-bold text-lg">
+                      You have missed {missedQuestionsCount} question{missedQuestionsCount > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="text-amber-300/80 text-sm">
+                    {unansweredCount > 0 && incorrectCount > 0 && (
+                      <p>{unansweredCount} unanswered, {incorrectCount} incorrect</p>
+                    )}
+                    {unansweredCount > 0 && incorrectCount === 0 && (
+                      <p>{unansweredCount} unanswered</p>
+                    )}
+                    {unansweredCount === 0 && incorrectCount > 0 && (
+                      <p>{incorrectCount} incorrect</p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-white/60 text-sm mb-6">
+                  Would you like to review and fix your answers before submitting?
+                </p>
+              </>
+            ) : (
+              <p className="text-white/60 text-sm mb-8">
+                All questions answered! Ready to submit your assessment?
+              </p>
+            )}
+
+            <div className="flex flex-col gap-3">
+              {!hasReviewed && (
+                <button
+                  onClick={handleStartReview}
+                  className="w-full py-4 bg-white/5 border-2 border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>📋</span> Review Assessment
+                </button>
+              )}
+              <button
+                onClick={() => doSubmit(false)}
+                disabled={submitting}
+                className="w-full py-4 bg-cyan-500 text-[#021a1d] font-bold rounded-2xl hover:bg-cyan-400 disabled:opacity-50 shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all"
+              >
+                {submitting ? "Submitting…" : "End Session ✓"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* ── Body ── */}
+          <div className="flex-1 max-w-2xl mx-auto w-full px-4 pt-6 pb-40 overflow-y-auto z-10 space-y-4">
         {/* Passage (if any) */}
         {assessment.passage && (
           <div className="glass-card rounded-2xl p-6 border-cyan-500/10 mb-4">
@@ -279,7 +385,12 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
 
         {/* Question Card */}
         <div className="glass-card rounded-[1.5rem] p-7 mb-6">
-          <p className="text-[10px] text-white/30 font-bold uppercase tracking-[0.2em] mb-3">Question {currentQ + 1}</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] text-white/30 font-bold uppercase tracking-[0.2em]">Question {currentQ + 1}</p>
+            {isReviewMode && (
+              <p className="text-[10px] text-amber-400 font-bold uppercase tracking-[0.2em]">📋 Review Mode</p>
+            )}
+          </div>
           <p
             onClick={() => handleTextClick(q.text)}
             className={`text-white font-semibold text-lg leading-relaxed ${readAloudEnabled ? "cursor-pointer hover:text-cyan-400 transition-colors" : ""
@@ -319,12 +430,15 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
       </div>
 
       {/* ── Bottom Nav ── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-black/60 backdrop-blur-xl border-t border-white/5 px-6 py-4 z-20">
+      {!showConfirmation && (
+        <div className="fixed bottom-0 left-0 right-0 bg-black/60 backdrop-blur-xl border-t border-white/5 px-6 py-4 z-20">
         {submitError && (
           <div className="max-w-2xl mx-auto mb-4 bg-red-500/10 border border-red-500/20 text-red-400 px-5 py-3 rounded-xl text-xs font-bold flex items-center gap-3">
             <span className="text-lg">✕</span> {submitError}
           </div>
         )}
+
+
         <div className="max-w-2xl mx-auto flex gap-4">
           <button
             onClick={() => setCurrentQ((i) => Math.max(0, i - 1))}
@@ -341,13 +455,19 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             >
               Continue →
             </button>
+          ) : isReviewMode ? (
+            <button
+              onClick={handleEndReview}
+              className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
+            >
+              End Review →
+            </button>
           ) : (
             <button
-              onClick={() => doSubmit(false)}
-              disabled={submitting}
-              className="flex-1 py-4 rounded-2xl bg-cyan-500 text-[#021a1d] font-bold text-sm hover:bg-cyan-400 disabled:opacity-50 shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all"
+              onClick={handleContinueToConfirmation}
+              className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
             >
-              {submitting ? "Submitting…" : "End Session ✓"}
+              Continue →
             </button>
           )}
         </div>
@@ -369,7 +489,10 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             </button>
           ))}
         </div>
-      </div>
+        </div>
+      )}
+        </>
+      )}
 
       {/* Watermark overlay */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] flex items-center justify-center overflow-hidden">

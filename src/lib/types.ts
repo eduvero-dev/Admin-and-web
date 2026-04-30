@@ -20,6 +20,8 @@ export interface Assessment {
   passage?: string | null;
   class_id?: string;
   questions: Question[];
+  read_aloud?: boolean;
+  duration_minutes?: number | null;
 }
 
 export interface SubmitResultsPayload {
