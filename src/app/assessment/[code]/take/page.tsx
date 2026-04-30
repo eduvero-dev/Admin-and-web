@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
-import { Volume2, VolumeX, Pause, Play, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Volume2, VolumeX, Pause, Play, RotateCcw, CheckCircle2, Clock } from "lucide-react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useHumanizedTTS } from "@/hooks/useHumanizedTTS";
 import { submitAssessmentResults } from "@/lib/api";
@@ -47,11 +47,19 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
   // If store is empty (page refresh), redirect home
   useEffect(() => {
     if (!assessment) router.replace("/");
   }, [assessment, router]);
+
+  // Initialize timer if duration_minutes is provided
+  useEffect(() => {
+    if (assessment?.duration_minutes) {
+      setTimeRemaining(assessment.duration_minutes * 60); // Convert to seconds
+    }
+  }, [assessment]);
 
   const handleExit = useCallback(() => {
     if (confirm("Are you sure you want to exit the assessment? Your progress will not be saved if you haven't submitted.")) {
@@ -149,6 +157,27 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
     doSubmit(true);
   }, [doSubmit]);
 
+  // Countdown timer
+  useEffect(() => {
+    if (timeRemaining === null || timeRemaining <= 0 || submitting) return;
+
+    const interval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          // Auto-submit when time runs out
+          if (prev === 1) {
+            doSubmit(true);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timeRemaining, submitting, doSubmit]);
+
   useAntiCheat({
     active: !!assessment && !submitting,
     onWarn: handleWarn,
@@ -185,6 +214,13 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   const handleContinueToConfirmation = useCallback(() => {
     setShowConfirmation(true);
   }, []);
+
+  // Format time remaining as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-[#050a0f] flex flex-col font-sans selection:bg-cyan-500/30">
@@ -283,6 +319,16 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
                     </div>
                   )}
                 </>
+              )}
+              {timeRemaining !== null && (
+                <div className="text-right">
+                  <p className="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1 justify-end">
+                    <Clock className="w-3 h-3" /> Time
+                  </p>
+                  <p className={`font-black text-xl tabular-nums ${timeRemaining <= 60 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
+                    {formatTime(timeRemaining)}
+                  </p>
+                </div>
               )}
               <div className="text-right">
                 <p className="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest mb-1">Status</p>
