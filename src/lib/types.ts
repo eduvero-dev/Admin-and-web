@@ -61,6 +61,7 @@ export interface Feedback {
   details: string;
   screenshot_urls: string[];
   inserted_at: string;
+  status: "pending" | "in review" | "resolved";
   teacher_id: string;
   teacher_name: string;
   teacher_email: string;

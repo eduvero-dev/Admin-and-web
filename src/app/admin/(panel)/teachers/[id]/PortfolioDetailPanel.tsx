@@ -126,16 +126,7 @@ export default function PortfolioDetailPanel({ isOpen, onClose, itemId, type }: 
               {/* Dynamic Content Sections */}
               <div className="grid grid-cols-1 gap-8">
                 {type === "assessment" && (
-                  <>
-                    <CardSection title="Content Scope">
-                      <p className="text-sm text-white/50 leading-relaxed">{data.sub_content}</p>
-                    </CardSection>
-                    <CardSection title="System Metadata">
-                      <pre className="text-[10px] text-cyan-400/60 bg-white/[0.02] p-4 rounded-2xl border border-white/5 overflow-auto max-h-64 font-mono leading-relaxed">
-                        {JSON.stringify(data.assessment, null, 2)}
-                      </pre>
-                    </CardSection>
-                  </>
+                  <AssessmentView data={data} />
                 )}
 
                 {type === "strategy" && (
@@ -215,6 +206,100 @@ export default function PortfolioDetailPanel({ isOpen, onClose, itemId, type }: 
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AssessmentView({ data }: { data: any }) {
+  const raw = data.assessment ?? {};
+  const passage: string = raw.passage ?? "";
+  const questions: any[] = raw.questions ?? [];
+  const optionLabels = ["a", "b", "c", "d"] as const;
+  const optionColors: Record<string, string> = {
+    a: "border-cyan-500/30 bg-cyan-500/5 text-cyan-400",
+    b: "border-blue-500/30 bg-blue-500/5 text-blue-400",
+    c: "border-violet-500/30 bg-violet-500/5 text-violet-400",
+    d: "border-pink-500/30 bg-pink-500/5 text-pink-400",
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Subject / grade info */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatsBox label="Subject" value={data.subject ?? "—"} />
+        <StatsBox label="Grade Level" value={`Grade ${data.grade_level}`} />
+        <StatsBox label="Sub-content" value={data.sub_content ?? "—"} />
+        <StatsBox label="Questions" value={String(data.num_questions ?? questions.length)} />
+      </div>
+
+      {/* Reading Passage */}
+      {passage && (
+        <CardSection title="Reading Passage">
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5">
+            <p className="text-sm text-white/60 leading-relaxed">{passage}</p>
+          </div>
+        </CardSection>
+      )}
+
+      {/* Questions */}
+      {questions.length > 0 && (
+        <CardSection title={`${questions.length} Questions`}>
+          <div className="space-y-6">
+            {questions.map((q: any, idx: number) => {
+              const correct = (() => {
+                const raw = q.answer?.toString() ?? "";
+                // Direct letter at start: "a", "B", "c)"
+                const startMatch = raw.toLowerCase().match(/^[a-d]\b/);
+                if (startMatch) return startMatch[0];
+                // Letter anywhere: "Answer: b"
+                const anyMatch = raw.toLowerCase().match(/\b([a-d])\b/);
+                if (anyMatch) return anyMatch[1];
+                // Match answer text against option text
+                const lower = raw.toLowerCase().trim();
+                for (const label of ["a", "b", "c", "d"] as const) {
+                  if (q[label]?.toString().toLowerCase().trim() === lower) return label;
+                }
+                return "";
+              })();
+              return (
+                <div key={idx} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <span className="shrink-0 w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black text-white/40">
+                      {idx + 1}
+                    </span>
+                    <p className="text-sm font-bold text-white/80 leading-relaxed">{q.question}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 pl-9">
+                    {optionLabels.map((label) => {
+                      const isCorrect = label === correct;
+                      return (
+                        <div
+                          key={label}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                            isCorrect
+                              ? "border-green-500/40 bg-green-500/10 text-green-400"
+                              : `border-white/5 bg-white/[0.01] text-white/40 ${optionColors[label]}`
+                          }`}
+                        >
+                          <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black uppercase shrink-0 ${isCorrect ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/25"}`}>
+                            {label}
+                          </span>
+                          <span className={isCorrect ? "text-green-300" : "text-white/50"}>{q[label]}</span>
+                          {isCorrect && (
+                            <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-md">
+                              Correct
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardSection>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { getAssessmentDetail, getStrategyDetail, getLessonPlanDetail } from "@/lib/api";
+import { getAssessmentDetail, getStrategyDetail, getLessonPlanDetail, updateUserPlan } from "@/lib/api";
 
 export async function fetchAssessmentDetail(id: string) {
   const { userId } = await auth();
@@ -22,7 +22,23 @@ export async function fetchStrategyDetail(id: string) {
 export async function fetchLessonPlanDetail(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
-  
+
   const token = await auth().then(a => a.getToken());
   return getLessonPlanDetail(token, userId, id);
+}
+
+export async function updateTeacherPlan(
+  clerkUserIds: string | string[],
+  plan: "Freemium" | "Insight" | "Impact Pro"
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const token = await auth().then(a => a.getToken());
+    const result = await updateUserPlan(token, userId, clerkUserIds, plan);
+    return result;
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to update user plan");
+  }
 }

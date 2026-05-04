@@ -113,6 +113,34 @@ export async function getDashboardAnalytics(token?: string | null, userId?: stri
   return res.json();
 }
 
+export async function updateFeedbackStatus(
+  token: string | null,
+  userId: string | null,
+  feedbackId: string,
+  status: "pending" | "in review" | "resolved"
+): Promise<{ message: string }> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/feedbacks/${feedbackId}/status`;
+
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (userId) headers["X-Clerk-User-Id"] = userId;
+
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ status }),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to update feedback status: ${res.status} ${errorText}`);
+  }
+
+  return res.json();
+}
+
 export async function getFeedbacks(token?: string | null, userId?: string | null, limit: number = 20, offset: number = 0): Promise<FeedbackResponse> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
   const url = `${baseUrl}/v1/admin/feedbacks?limit=${limit}&offset=${offset}`;
@@ -297,6 +325,36 @@ export async function createStripeCheckout(params: {
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`Failed to create checkout: ${res.status} ${errorText}`);
+  }
+
+  return res.json();
+}
+
+export async function updateUserPlan(
+  token: string | null,
+  userId: string | null,
+  clerkUserIds: string | string[],
+  plan: "Freemium" | "Insight" | "Impact Pro"
+): Promise<{ updated_users?: any[]; message?: string }> {
+  const baseUrl = "https://spiced-cider-staging.up.railway.app";
+  const url = `${baseUrl}/v1/admin/users/plan`;
+
+  const ids = Array.isArray(clerkUserIds) ? clerkUserIds : [clerkUserIds];
+
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (userId) headers["X-Clerk-User-Id"] = userId;
+
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ clerk_user_ids: ids, plan }),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to update user plan: ${res.status} ${errorText}`);
   }
 
   return res.json();
