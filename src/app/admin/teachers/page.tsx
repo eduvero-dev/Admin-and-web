@@ -8,7 +8,7 @@ export default async function AdminTeachers() {
   if (!userId) redirect("/admin");
 
   const token = await auth().then(a => a.getToken());
-  const data = await getTeachers(token, userId, 100); // Get up to 100 for now
-  
+  const data = await getTeachers(token, userId, 1000); // Fetch all teachers (high limit)
+
   return <TeacherListContent teachers={data.teachers} total={data.total} />;
 }

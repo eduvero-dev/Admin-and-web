@@ -23,13 +23,13 @@ export default function TeacherListContent({ teachers, total }: TeacherListConte
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-black tracking-tight bg-gradient-to-br from-white to-white/40 bg-clip-text text-transparent">
-              Teacher Directory
+              All Teachers
             </h1>
             <div className="px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs font-black text-cyan-400 uppercase tracking-widest">
-              Live Database
+              {total} Total
             </div>
           </div>
-          <p className="text-base text-white/40 font-medium">Monitoring {total} registered educators in the system</p>
+          <p className="text-base text-white/40 font-medium">Complete directory of all registered educators</p>
         </div>
         
         <div className="flex items-center gap-4">

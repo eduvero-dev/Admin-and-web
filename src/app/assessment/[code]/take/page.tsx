@@ -356,7 +356,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             </div>
             <h2 className="text-2xl font-bold text-white mb-3">Ready to Submit?</h2>
 
-            {missedQuestionsCount > 0 ? (
+            {!hasReviewed && missedQuestionsCount > 0 ? (
               <>
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-6">
                   <div className="flex items-center justify-center gap-3 mb-3">
@@ -383,7 +383,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
               </>
             ) : (
               <p className="text-white/60 text-sm mb-8">
-                All questions answered! Ready to submit your assessment?
+                {hasReviewed ? "Ready to submit your assessment?" : "All questions answered! Ready to submit your assessment?"}
               </p>
             )}
 
@@ -401,7 +401,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
                 disabled={submitting}
                 className="w-full py-4 bg-cyan-500 text-[#021a1d] font-bold rounded-2xl hover:bg-cyan-400 disabled:opacity-50 shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all"
               >
-                {submitting ? "Submitting…" : "End Session ✓"}
+                {submitting ? "Submitting…" : "Submit Answers"}
               </button>
             </div>
           </div>
