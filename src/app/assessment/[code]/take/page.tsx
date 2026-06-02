@@ -15,6 +15,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
     assessment,
     accessCode,
     answers,
+    randomizedOrder,
     setAnswer,
     setSubmitted,
     setScore,
@@ -186,7 +187,12 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
 
   if (!assessment) return null;
 
-  const q = assessment.questions[currentQ];
+  // Use randomized order to display questions
+  // Fallback to sequential order if randomizedOrder is empty (shouldn't happen, but safety check)
+  const randomizedQuestions = randomizedOrder.length > 0
+    ? randomizedOrder.map((idx) => assessment.questions[idx])
+    : assessment.questions;
+  const q = randomizedQuestions[currentQ];
   const totalQ = assessment.questions.length;
   const progress = ((currentQ + 1) / totalQ) * 100;
   const answeredCount = Object.keys(answers).length;
@@ -194,7 +200,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
 
   // Calculate missed questions: unanswered + incorrect
   const unansweredCount = totalQ - answeredCount;
-  const incorrectCount = assessment.questions.filter(
+  const incorrectCount = randomizedQuestions.filter(
     (question) => answers[question.id] && answers[question.id] !== question.correctAnswer
   ).length;
   const missedQuestionsCount = unansweredCount + incorrectCount;
@@ -520,7 +526,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
 
         {/* Question Dot Grid */}
         <div className="max-w-2xl mx-auto mt-6 flex flex-wrap gap-2 justify-center">
-          {assessment.questions.map((q2, idx) => (
+          {randomizedQuestions.map((q2, idx) => (
             <button
               key={q2.id}
               onClick={() => setCurrentQ(idx)}

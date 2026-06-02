@@ -7,6 +7,10 @@ interface AssessmentStore {
   accessCode: string;
   studentName: string;
 
+  // Question randomization: stores the randomized indices
+  // e.g., [2, 0, 3, 1] means show question[2] first, question[0] second, etc.
+  randomizedOrder: number[];
+
   // Answers: questionId -> option label
   answers: Record<string, string>;
 
@@ -40,6 +44,7 @@ const initialState = {
   assessment: null,
   accessCode: "",
   studentName: "",
+  randomizedOrder: [],
   answers: {},
   tabSwitchCount: 0,
   autoSubmitted: false,
@@ -49,10 +54,26 @@ const initialState = {
   readAloudEnabled: false,
 };
 
+// Fisher-Yates shuffle algorithm for randomizing question order
+function shuffleArray(array: number[]): number[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export const useAssessmentStore = create<AssessmentStore>((set) => ({
   ...initialState,
 
-  setAssessment: (assessment) => set({ assessment }),
+  setAssessment: (assessment) => {
+    // Generate randomized order when assessment is set
+    const order = assessment
+      ? shuffleArray(Array.from({ length: assessment.questions.length }, (_, i) => i))
+      : [];
+    set({ assessment, randomizedOrder: order });
+  },
   setAccessCode: (accessCode) => set({ accessCode }),
   setStudentName: (studentName) => set({ studentName }),
   setAnswer: (questionId, option) =>
