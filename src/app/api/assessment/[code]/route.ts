@@ -5,7 +5,7 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code } = await params;
-  const API_BASE = "https://spiced-cider-staging.up.railway.app";
+  const API_BASE = "https://d3bqxy57prpkdk.cloudfront.net";
 
   console.log(`[Proxy GET] Fetching assessment for code: ${code}`);
 
@@ -23,8 +23,8 @@ export async function GET(
       console.error(`[Proxy GET] Backend returned ${res.status} for ${url}`);
       const errorText = await res.text();
       return NextResponse.json(
-        { 
-          error: "Assessment not found", 
+        {
+          error: "Assessment not found",
           debug: {
             status: res.status,
             url,

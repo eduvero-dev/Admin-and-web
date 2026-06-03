@@ -1,7 +1,7 @@
-import { 
-  Assessment, 
-  DashboardAnalytics, 
-  FeedbackResponse, 
+import {
+  Assessment,
+  DashboardAnalytics,
+  FeedbackResponse,
   SubmitResultsPayload,
   TeacherListResponse,
   TeacherDetail,
@@ -83,10 +83,10 @@ export async function submitAssessmentResults(payload: SubmitResultsPayload): Pr
 }
 
 export async function getDashboardAnalytics(token?: string | null, userId?: string | null): Promise<DashboardAnalytics> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/analytics/dashboard`;
   console.log(`[API] Fetching dashboard analytics from: ${url}`);
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -94,7 +94,7 @@ export async function getDashboardAnalytics(token?: string | null, userId?: stri
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   if (userId) {
     headers['X-Clerk-User-Id'] = userId;
   }
@@ -103,13 +103,13 @@ export async function getDashboardAnalytics(token?: string | null, userId?: stri
     headers,
     next: { revalidate: 0 }
   });
-  
+
   if (!res.ok) {
     const errorText = await res.text();
     console.error(`[API Error] Status: ${res.status}, Body: ${errorText}`);
     throw new Error(`Failed to fetch dashboard analytics: ${res.status} ${errorText}`);
   }
-  
+
   return res.json();
 }
 
@@ -119,7 +119,7 @@ export async function updateFeedbackStatus(
   feedbackId: string,
   status: "pending" | "in review" | "resolved"
 ): Promise<{ message: string }> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/feedbacks/${feedbackId}/status`;
 
   const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -142,11 +142,11 @@ export async function updateFeedbackStatus(
 }
 
 export async function getFeedbacks(token?: string | null, userId?: string | null, limit: number = 20, offset: number = 0): Promise<FeedbackResponse> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/feedbacks?limit=${limit}&offset=${offset}`;
 
   console.log(`[API] Fetching feedbacks from: ${url}`);
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -163,22 +163,22 @@ export async function getFeedbacks(token?: string | null, userId?: string | null
     headers,
     next: { revalidate: 0 }
   });
-  
+
   if (!res.ok) {
     const errorText = await res.text();
     console.error(`[API Error Feedbacks] Status: ${res.status}, Body: ${errorText}`);
     throw new Error(`Failed to fetch feedbacks: ${res.status} ${errorText}`);
   }
-  
+
   return res.json();
 }
 
 export async function getTeachers(token?: string | null, userId?: string | null, limit: number = 20, offset: number = 0): Promise<TeacherListResponse> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/teachers?limit=${limit}&offset=${offset}`;
 
   console.log(`[API] Fetching teachers from: ${url}`);
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -195,22 +195,22 @@ export async function getTeachers(token?: string | null, userId?: string | null,
     headers,
     next: { revalidate: 0 }
   });
-  
+
   if (!res.ok) {
     const errorText = await res.text();
     console.error(`[API Error Teachers] Status: ${res.status}, Body: ${errorText}`);
     throw new Error(`Failed to fetch teachers: ${res.status} ${errorText}`);
   }
-  
+
   return res.json();
 }
 
 export async function getTeacherById(token: string | null, userId: string | null, teacherId: string): Promise<TeacherDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/teachers/${teacherId}`;
 
   console.log(`[API] Fetching teacher details from: ${url}`);
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -227,20 +227,20 @@ export async function getTeacherById(token: string | null, userId: string | null
     headers,
     next: { revalidate: 0 }
   });
-  
+
   if (!res.ok) {
     const errorText = await res.text();
     console.error(`[API Error Teacher Detail] Status: ${res.status}, TeacherID: ${teacherId}, Body: ${errorText}`);
     throw new Error(`Failed to fetch teacher details: ${res.status} ${errorText}`);
   }
-  
+
   return res.json();
 }
 
 export async function getAssessmentDetail(token: string | null, userId: string | null, assessmentId: string): Promise<AssessmentDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/assessments/${assessmentId}`;
-  
+
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (userId) headers['X-Clerk-User-Id'] = userId;
@@ -251,9 +251,9 @@ export async function getAssessmentDetail(token: string | null, userId: string |
 }
 
 export async function getStrategyDetail(token: string | null, userId: string | null, strategyId: string): Promise<StrategyDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/strategies/${strategyId}`;
-  
+
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (userId) headers['X-Clerk-User-Id'] = userId;
@@ -264,9 +264,9 @@ export async function getStrategyDetail(token: string | null, userId: string | n
 }
 
 export async function getLessonPlanDetail(token: string | null, userId: string | null, lessonId: string): Promise<LessonPlanDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/lesson-plans/${lessonId}`;
-  
+
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (userId) headers['X-Clerk-User-Id'] = userId;
@@ -336,7 +336,7 @@ export async function updateUserPlan(
   clerkUserIds: string | string[],
   plan: "Freemium" | "Insight" | "Impact Pro"
 ): Promise<{ updated_users?: any[]; message?: string }> {
-  const baseUrl = "https://spiced-cider-staging.up.railway.app";
+  const baseUrl = "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/users/plan`;
 
   const ids = Array.isArray(clerkUserIds) ? clerkUserIds : [clerkUserIds];

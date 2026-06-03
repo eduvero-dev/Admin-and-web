@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const API_BASE = "https://spiced-cider-staging.up.railway.app";
+    const API_BASE = "https://d3bqxy57prpkdk.cloudfront.net";
     const url = `${API_BASE}/v1/assessment_results/access_code/`;
 
     console.log(`[Proxy POST] Submitting to backend: ${url}`);
     console.log(`[Proxy POST] Payload:`, JSON.stringify(body, null, 2));
-    
+
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       const errorText = await res.text();
       console.error(`[Proxy POST] Backend error ${res.status}:`, errorText);
       return NextResponse.json(
-        { 
+        {
           error: "Failed to submit assessment results",
           debug: {
             status: res.status,
