@@ -8,7 +8,8 @@ import {
   AssessmentDetail,
   StrategyDetail,
   LessonPlanDetail,
-  SubscriptionPlansResponse
+  SubscriptionPlansResponse,
+  ReadAloudType
 } from "./types";
 
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
@@ -63,7 +64,20 @@ export async function getAssessmentByCode(accessCode: string): Promise<Assessmen
   if (classId) transformed.class_id = classId.toString();
 
   // Add read_aloud and duration_minutes from the parent response
-  transformed.read_aloud = data.read_aloud ?? false;
+  let readAloudVal: ReadAloudType = "none";
+  if (
+    data.read_aloud === true ||
+    data.read_aloud === "Read aloud passage, questions, and answer choices" ||
+    data.read_aloud === "all"
+  ) {
+    readAloudVal = "all";
+  } else if (
+    data.read_aloud === "Read aloud question and answer choices only" ||
+    data.read_aloud === "questions_and_options"
+  ) {
+    readAloudVal = "questions_and_options";
+  }
+  transformed.read_aloud = readAloudVal;
   transformed.duration_minutes = data.duration_minutes ?? null;
 
   return transformed;

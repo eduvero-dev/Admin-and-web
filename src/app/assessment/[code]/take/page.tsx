@@ -26,7 +26,8 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   } = useAssessmentStore();
 
   // Check if read aloud is enabled for this assessment
-  const isReadAloudAvailable = assessment?.read_aloud ?? false;
+  const isReadAloudAvailable = assessment?.read_aloud !== undefined && assessment.read_aloud !== "none";
+  const isPassageReadAloudAllowed = assessment?.read_aloud === "all";
 
   // Debug logging
   useEffect(() => {
@@ -421,13 +422,20 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           <div className="glass-card rounded-2xl p-6 border-cyan-500/10 mb-4">
             <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.2em] mb-3">Reading Passage</p>
             <p
-              onClick={() => handleTextClick(assessment.passage!)}
-              className={`text-white/70 text-sm leading-relaxed whitespace-pre-line ${readAloudEnabled ? "cursor-pointer hover:text-white/90 transition-colors" : ""
-                }`}
+              onClick={() => {
+                if (isPassageReadAloudAllowed) {
+                  handleTextClick(assessment.passage!);
+                }
+              }}
+              className={`text-white/70 text-sm leading-relaxed whitespace-pre-line ${
+                readAloudEnabled && isPassageReadAloudAllowed
+                  ? "cursor-pointer hover:text-white/90 transition-colors"
+                  : ""
+              }`}
             >
               {assessment.passage}
             </p>
-            {readAloudEnabled && (
+            {readAloudEnabled && isPassageReadAloudAllowed && (
               <p className="text-cyan-400/50 text-[9px] font-bold uppercase tracking-wider mt-3 flex items-center gap-1.5">
                 <span>💡</span> Click text to hear it read aloud
               </p>
@@ -444,9 +452,16 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             )}
           </div>
           <p
-            onClick={() => handleTextClick(q.text)}
-            className={`text-white font-semibold text-lg leading-relaxed ${readAloudEnabled ? "cursor-pointer hover:text-cyan-400 transition-colors" : ""
-              }`}
+            onClick={() => {
+              if (isReadAloudAvailable) {
+                handleTextClick(q.text);
+              }
+            }}
+            className={`text-white font-semibold text-lg leading-relaxed ${
+              readAloudEnabled && isReadAloudAvailable
+                ? "cursor-pointer hover:text-cyan-400 transition-colors"
+                : ""
+            }`}
           >
             {q.text}
           </p>
@@ -461,7 +476,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
                 key={opt.id}
                 onClick={() => {
                   setAnswer(q.id, opt.label);
-                  if (readAloudEnabled) {
+                  if (readAloudEnabled && isReadAloudAvailable) {
                     handleTextClick(`${opt.label}. ${opt.text}`);
                   }
                 }}

@@ -13,6 +13,8 @@ export interface Question {
   options: QuestionOption[];
 }
 
+export type ReadAloudType = "none" | "questions_and_options" | "all";
+
 export interface Assessment {
   id: string;
   assessment_id: string;
@@ -20,7 +22,7 @@ export interface Assessment {
   passage?: string | null;
   class_id?: string;
   questions: Question[];
-  read_aloud?: boolean;
+  read_aloud?: ReadAloudType;
   duration_minutes?: number | null;
 }
 
