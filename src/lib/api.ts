@@ -9,7 +9,9 @@ import {
   StrategyDetail,
   LessonPlanDetail,
   SubscriptionPlansResponse,
-  ReadAloudType
+  ReadAloudType,
+  AIUsageResponse,
+  AIUsageCallsResponse
 } from "./types";
 
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
@@ -369,6 +371,82 @@ export async function updateUserPlan(
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`Failed to update user plan: ${res.status} ${errorText}`);
+  }
+
+  return res.json();
+}
+
+export async function getAIUsage(
+  token: string | null,
+  userId: string | null,
+  limit: number = 50,
+  offset: number = 0
+): Promise<AIUsageResponse> {
+  const baseUrl = "https://d3bqxy57prpkdk.cloudfront.net";
+  const url = `${baseUrl}/v1/admin/ai-usage/users?limit=${limit}&offset=${offset}`;
+
+  console.log(`[API] Fetching AI usage from: ${url}`);
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'accept': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (userId) {
+    headers['X-Clerk-User-Id'] = userId;
+  }
+
+  const res = await fetch(url, {
+    headers,
+    next: { revalidate: 0 }
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`[API Error AI Usage] Status: ${res.status}, Body: ${errorText}`);
+    throw new Error(`Failed to fetch AI usage: ${res.status} ${errorText}`);
+  }
+
+  return res.json();
+}
+
+export async function getAIUsageCalls(
+  token: string | null,
+  userId: string | null,
+  limit: number = 50,
+  offset: number = 0
+): Promise<AIUsageCallsResponse> {
+  const baseUrl = "https://d3bqxy57prpkdk.cloudfront.net";
+  const url = `${baseUrl}/v1/admin/ai-usage/calls?limit=${limit}&offset=${offset}`;
+
+  console.log(`[API] Fetching AI usage calls from: ${url}`);
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'accept': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (userId) {
+    headers['X-Clerk-User-Id'] = userId;
+  }
+
+  const res = await fetch(url, {
+    headers,
+    next: { revalidate: 0 }
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`[API Error AI Usage Calls] Status: ${res.status}, Body: ${errorText}`);
+    throw new Error(`Failed to fetch AI usage calls: ${res.status} ${errorText}`);
   }
 
   return res.json();

@@ -192,3 +192,34 @@ export interface SubscriptionPlan {
 export interface SubscriptionPlansResponse {
   plans: SubscriptionPlan[];
 }
+
+export interface AIUsageCall {
+  id: number;
+  teacher_id: string;
+  feature_name: string;
+  model_name: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  inserted_at: string;
+}
+
+export interface AIUsageUser {
+  teacher_id: string;
+  total_tokens: number;
+  calls: AIUsageCall[];
+}
+
+export interface AIUsageResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  users: AIUsageUser[];
+}
+
+export interface AIUsageCallsResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  calls: AIUsageCall[];
+}

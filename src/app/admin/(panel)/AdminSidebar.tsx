@@ -9,6 +9,7 @@ import {
   ScrollText,
   ChevronRight,
   LogOut,
+  Cpu,
 } from "lucide-react";
 import { UserButton, useClerk } from "@clerk/nextjs";
 
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/teachers", label: "Teachers", icon: GraduationCap },
   { href: "/admin/feedbacks", label: "Feedbacks", icon: MessageSquare },
+  { href: "/admin/ai-usage", label: "AI Usage", icon: Cpu },
   { href: "/admin/logs", label: "System Logs", icon: ScrollText },
 ];
 
