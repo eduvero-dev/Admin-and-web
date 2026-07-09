@@ -1,15 +1,13 @@
 "use client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 import { useAssessmentStore } from "@/store/assessmentStore";
 
 export default function SubmittedPage() {
   const router = useRouter();
-  const { score, assessment, autoSubmitted, answers, reset } = useAssessmentStore();
+  const { score, assessment, autoSubmitted, reset } = useAssessmentStore();
 
-  const total = assessment?.questions.length ?? 0;
-  const correct = score !== null ? Math.round((score / 100) * total) : 0;
+  const resultScore = score ?? 0;
 
   const handleDone = () => {
     reset();
@@ -79,8 +77,8 @@ export default function SubmittedPage() {
                   <span className="text-white truncate max-w-[150px]">{assessment.title}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-widest">
-                  <span className="text-white/30">Completion</span>
-                  <span className="text-white">{Math.round((Object.keys(answers).length / total) * 100)}%</span>
+                  <span className="text-white/30">Result</span>
+                  <span className="text-white">{resultScore}%</span>
                 </div>
               </div>
             )}
