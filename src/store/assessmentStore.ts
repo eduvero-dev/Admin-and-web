@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import { Assessment } from "@/lib/types";
+import { Assessment, RosterStudent } from "@/lib/types";
 
 interface AssessmentStore {
   // Assessment data
   assessment: Assessment | null;
   accessCode: string;
   studentName: string;
+  selectedStudent: RosterStudent | null;
 
   // Question randomization: stores the randomized indices
   // e.g., [2, 0, 3, 1] means show question[2] first, question[0] second, etc.
@@ -30,6 +31,7 @@ interface AssessmentStore {
   setAssessment: (a: Assessment) => void;
   setAccessCode: (code: string) => void;
   setStudentName: (name: string) => void;
+  setSelectedStudent: (student: RosterStudent | null) => void;
   setAnswer: (questionId: string, option: string) => void;
   incrementTabSwitch: () => void;
   setAutoSubmitted: (val: boolean) => void;
@@ -44,6 +46,7 @@ const initialState = {
   assessment: null,
   accessCode: "",
   studentName: "",
+  selectedStudent: null,
   randomizedOrder: [],
   answers: {},
   tabSwitchCount: 0,
@@ -72,10 +75,12 @@ export const useAssessmentStore = create<AssessmentStore>((set) => ({
     const order = assessment
       ? shuffleArray(Array.from({ length: assessment.questions.length }, (_, i) => i))
       : [];
-    set({ assessment, randomizedOrder: order });
+    set({ assessment, randomizedOrder: order, selectedStudent: null, studentName: "" });
   },
   setAccessCode: (accessCode) => set({ accessCode }),
   setStudentName: (studentName) => set({ studentName }),
+  setSelectedStudent: (selectedStudent) =>
+    set({ selectedStudent, studentName: selectedStudent?.name ?? "" }),
   setAnswer: (questionId, option) =>
     set((state) => ({ answers: { ...state.answers, [questionId]: option } })),
   incrementTabSwitch: () =>

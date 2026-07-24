@@ -9,7 +9,13 @@ import { getAssessmentByCode } from "@/lib/api";
 export default function AssessmentPreviewPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const router = useRouter();
-  const { assessment, setAssessment, setAccessCode } = useAssessmentStore();
+  const {
+    assessment,
+    selectedStudent,
+    setAssessment,
+    setAccessCode,
+    setSelectedStudent,
+  } = useAssessmentStore();
 
   const [loading, setLoading] = useState(!assessment);
   const [error, setError] = useState("");
@@ -46,6 +52,7 @@ export default function AssessmentPreviewPage({ params }: { params: Promise<{ co
 
   const handleStart = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (assessment?.roster?.length && !selectedStudent) return;
     requestFullscreen();
     router.push(`/assessment/${code}/take`);
   };
@@ -132,9 +139,40 @@ export default function AssessmentPreviewPage({ params }: { params: Promise<{ co
               </div>
 
               <form onSubmit={handleStart}>
+                {assessment.roster && assessment.roster.length > 0 && (
+                  <div className="mb-5">
+                    <label className="block text-[10px] font-bold text-white/50 uppercase tracking-[0.15em] mb-3 ml-1">
+                      Student
+                    </label>
+                    <select
+                      value={selectedStudent?.roll_number ?? ""}
+                      onChange={(e) => {
+                        const student =
+                          assessment.roster?.find((item) => item.roll_number === e.target.value) ?? null;
+                        setSelectedStudent(student);
+                      }}
+                      required
+                      className="glass-input w-full px-5 py-4 text-sm font-bold rounded-2xl outline-none transition-all"
+                    >
+                      <option value="" className="bg-[#050a0f] text-white">
+                        Select your name
+                      </option>
+                      {assessment.roster.map((student) => (
+                        <option
+                          key={student.roll_number}
+                          value={student.roll_number}
+                          className="bg-[#050a0f] text-white"
+                        >
+                          {student.name} ({student.roll_number})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <button
                   type="submit"
-                  className="w-full py-5 rounded-2xl bg-cyan-500 text-[#021a1d] font-bold text-xl shadow-[0_0_25px_rgba(6,182,212,0.3)] hover:bg-cyan-400 hover:shadow-[0_0_35px_rgba(6,182,212,0.4)] active:scale-[0.98] transition-all"
+                  disabled={!!assessment.roster?.length && !selectedStudent}
+                  className="w-full py-5 rounded-2xl bg-cyan-500 text-[#021a1d] font-bold text-xl shadow-[0_0_25px_rgba(6,182,212,0.3)] hover:bg-cyan-400 hover:shadow-[0_0_35px_rgba(6,182,212,0.4)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Start Assessment →
                 </button>

@@ -15,6 +15,11 @@ export interface Question {
 
 export type ReadAloudType = "none" | "questions_and_options" | "all";
 
+export interface RosterStudent {
+  name: string;
+  roll_number: string;
+}
+
 export interface Assessment {
   id: string;
   assessment_id: string;
@@ -24,6 +29,7 @@ export interface Assessment {
   questions: Question[];
   read_aloud?: ReadAloudType;
   duration_minutes?: number | null;
+  roster?: RosterStudent[];
 }
 
 export interface SubmitResultsPayload {
@@ -34,6 +40,7 @@ export interface SubmitResultsPayload {
   score: number;
   submitted: string;
   responses: Record<string, string>; // question_id -> selected option label
+  roll_number?: string;
 }
 
 export interface AnalyticsOverview {

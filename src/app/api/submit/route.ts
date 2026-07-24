@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
+function getApiBase() {
+  const configured = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+  return configured.replace(/^http:(?!\/\/)/, "http://").replace(/\/$/, "");
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const API_BASE = "https://d3bqxy57prpkdk.cloudfront.net";
+    const API_BASE = getApiBase();
     const url = `${API_BASE}/v1/assessment_results/access_code/`;
 
     console.log(`[Proxy POST] Submitting to backend: ${url}`);

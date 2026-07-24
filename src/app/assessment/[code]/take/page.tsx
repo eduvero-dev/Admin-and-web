@@ -14,6 +14,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   const {
     assessment,
     accessCode,
+    selectedStudent,
     answers,
     randomizedOrder,
     setAnswer,
@@ -54,7 +55,8 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   // If store is empty (page refresh), redirect home
   useEffect(() => {
     if (!assessment) router.replace("/");
-  }, [assessment, router]);
+    else if (assessment.roster?.length && !selectedStudent) router.replace(`/assessment/${resolvedParams.code}`);
+  }, [assessment, selectedStudent, resolvedParams.code, router]);
 
   // Initialize timer if duration_minutes is provided
   useEffect(() => {
@@ -106,12 +108,13 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
 
       const now = new Date().toISOString().split("T")[0];
 
-      // Transform answers (question_id -> label) to responses (index -> label) 
-      // to match mobile app's backend expectations
+      // New roster assessments use backend question_ids like "q-1";
+      // legacy assessments still expect numeric index keys.
       const responses: Record<string, string> = {};
       assessment.questions.forEach((q, index) => {
         if (answers[q.id]) {
-          responses[index.toString()] = answers[q.id];
+          const responseKey = q.id.startsWith("q_") ? index.toString() : q.id;
+          responses[responseKey] = answers[q.id];
         }
       });
 
@@ -124,6 +127,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           score: scoreVal,
           submitted: now, // Backend expects simple date string
           responses: responses,
+          roll_number: selectedStudent?.roll_number,
         });
 
         // Exit fullscreen on successful submission
@@ -150,7 +154,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
         }
       }
     },
-    [assessment, submitting, accessCode, answers, setAutoSubmitted, setScore, setSubmitted, router]
+    [assessment, submitting, accessCode, answers, selectedStudent, setAutoSubmitted, setScore, setSubmitted, router]
   );
 
   const handleWarn = useCallback(() => setShowWarning(true), []);

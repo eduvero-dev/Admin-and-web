@@ -11,23 +11,40 @@ import {
   SubscriptionPlansResponse,
   ReadAloudType,
   AIUsageResponse,
-  AIUsageCallsResponse
+  AIUsageCallsResponse,
+  QuestionOption
 } from "./types";
 
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
   const questions = data.questions.map((q: any, index: number) => {
-    const answerMatch = q.answer?.toString().toLowerCase().match(/[a-d]/);
-    const parsedAnswer = answerMatch ? answerMatch[0] : "a";
+    const rawChoices = q.student_view?.choices;
+    const choiceValues = Array.isArray(rawChoices)
+      ? rawChoices
+      : [q.a, q.b, q.c, q.d];
+    const labels = ["a", "b", "c", "d"] as const;
+    const answerText = (
+      q.answer ??
+      q.correct_answer ??
+      q.correctAnswer ??
+      q.student_view?.answer
+    )?.toString();
+    const answerMatch = answerText?.toLowerCase().match(/[a-d]/);
+    const answerByText = labels.find(
+      (label, choiceIndex) =>
+        choiceValues[choiceIndex]?.toString().trim().toLowerCase() ===
+        answerText?.trim().toLowerCase()
+    );
+    const parsedAnswer = answerMatch?.[0] || answerByText || "a";
+
     return {
-      id: `q_${assessmentId}_${index}`,
-      text: q.question,
+      id: q.question_id?.toString() || `q_${assessmentId}_${index}`,
+      text: q.student_view?.question_text || q.question,
       correctAnswer: parsedAnswer as "a" | "b" | "c" | "d",
-      options: [
-        { id: `opt_${assessmentId}_${index}_a`, label: "a" as const, text: q.a },
-        { id: `opt_${assessmentId}_${index}_b`, label: "b" as const, text: q.b },
-        { id: `opt_${assessmentId}_${index}_c`, label: "c" as const, text: q.c },
-        { id: `opt_${assessmentId}_${index}_d`, label: "d" as const, text: q.d },
-      ],
+      options: labels.map((label, choiceIndex) => ({
+        id: `opt_${assessmentId}_${index}_${label}`,
+        label,
+        text: choiceValues[choiceIndex]?.toString() || "",
+      })) satisfies QuestionOption[],
     };
   });
 
@@ -62,8 +79,10 @@ export async function getAssessmentByCode(accessCode: string): Promise<Assessmen
   }
 
   const transformed = transformAssessmentJson(assessmentContent, assessmentId.toString());
-  const classId = data.assessment?.class_id || data.access_code?.class_id;
+  const classId = data.assessment?.class_id || data.access_code?.class_id || data.class_id;
   if (classId) transformed.class_id = classId.toString();
+  const roster = data.roster || data.access_code?.roster;
+  transformed.roster = Array.isArray(roster) ? roster : [];
 
   // Add read_aloud and duration_minutes from the parent response
   let readAloudVal: ReadAloudType = "none";
