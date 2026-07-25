@@ -24,6 +24,7 @@ function transformAssessmentJson(data: any, assessmentId: string): Assessment {
     const labels = ["a", "b", "c", "d"] as const;
     const answerText = (
       q.answer ??
+      q.teacher_metadata?.correct_answer ??
       q.correct_answer ??
       q.correctAnswer ??
       q.student_view?.answer
