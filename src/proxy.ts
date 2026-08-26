@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 // Routes requiring a valid Clerk session AND admin role
 const isAdminRoute = createRouteMatcher([
   '/admin/dashboard(.*)',
+  '/admin/organizations(.*)',
   '/admin/settings(.*)',
   '/admin/analytics(.*)',
 ]);
@@ -11,6 +12,7 @@ const isAdminRoute = createRouteMatcher([
 // Routes requiring only a valid Clerk session (no role check)
 const isProtectedRoute = createRouteMatcher([
   '/admin/dashboard(.*)',
+  '/admin/organizations(.*)',
   '/admin/settings(.*)',
   '/admin/analytics(.*)',
 ]);

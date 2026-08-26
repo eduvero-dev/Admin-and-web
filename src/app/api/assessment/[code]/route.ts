@@ -1,5 +1,18 @@
 import { NextResponse } from "next/server";
 
+/** Recursively remove teacher_metadata from any object/array. */
+function stripTeacherMetadata(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(stripTeacherMetadata);
+  if (obj && typeof obj === "object") {
+    const { teacher_metadata, ...rest } = obj;
+    void teacher_metadata; // intentionally dropped
+    return Object.fromEntries(
+      Object.entries(rest).map(([k, v]) => [k, stripTeacherMetadata(v)])
+    );
+  }
+  return obj;
+}
+
 function getApiBase() {
   const configured = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   return configured.replace(/^http:(?!\/\/)/, "http://").replace(/\/$/, "");
@@ -51,7 +64,11 @@ export async function GET(
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+
+    // Strip teacher_metadata (correct answers) from every question
+    // so they are never exposed to the browser via the Network tab.
+    const stripped = stripTeacherMetadata(data);
+    return NextResponse.json(stripped);
   } catch (error: any) {
     console.error(`[Proxy GET] Internal error:`, error);
     return NextResponse.json(

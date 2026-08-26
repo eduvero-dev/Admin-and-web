@@ -88,6 +88,15 @@ export interface TeacherSummary {
   name: string;
   email: string;
   inserted_at: string;
+  current_plan?: string;
+  completed_onboarding?: boolean;
+  deactivated?: boolean;
+  organization_id?: number | null;
+  organization_name?: string | null;
+  organization_role?: string | null;
+  pending_organization_id?: number | null;
+  eligible_for_organization?: boolean;
+  ineligibility_reason?: string | null;
 }
 
 export interface TeacherListResponse {
@@ -229,4 +238,115 @@ export interface AIUsageCallsResponse {
   limit: number;
   offset: number;
   calls: AIUsageCall[];
+}
+
+export type OrganizationLifecycleStatus =
+  | "pending_owner"
+  | "pending_onboarding"
+  | "active"
+  | "inactive";
+
+export type OrganizationBillingSource = "manual" | "stripe";
+export type OrganizationBillingInterval = "month" | "year";
+
+export interface OrganizationOwner {
+  teacher_id: string | null;
+  email: string;
+  name: string | null;
+  completed_onboarding: boolean;
+  deactivated: boolean;
+  invitation_id: number | null;
+  invitation_status: string | null;
+  email_delivery_status: string | null;
+}
+
+export interface OrganizationMemberRecord {
+  invite_id: number;
+  organization_id: number;
+  teacher_id: string | null;
+  status: string;
+  inserted_at: string;
+  joined_at: string | null;
+  record_type: "member" | "invitation";
+  invitation_role: "member" | "owner" | null;
+  claim_mode: string | null;
+  source: string | null;
+  email_delivery_status: string | null;
+  organization_name: string | null;
+  teacher_email: string | null;
+  teacher_name: string | null;
+}
+
+export interface OrganizationSummary {
+  organization_id: number;
+  name: string;
+  lifecycle_status: OrganizationLifecycleStatus;
+  billing_source: OrganizationBillingSource;
+  plan_name: string;
+  billing_interval: OrganizationBillingInterval;
+  subscription_id: string | null;
+  subscription_status: string | null;
+  paid_member_seats: number;
+  paid_members_cycle: number;
+  current_occupancy: number;
+  remaining_occupancy: number;
+  is_active: boolean;
+  can_manage_members: boolean;
+  owner: OrganizationOwner;
+  inserted_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationDetail extends OrganizationSummary {
+  members: OrganizationMemberRecord[];
+}
+
+export interface OrganizationListResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  organizations: OrganizationSummary[];
+}
+
+export interface CreateOrganizationPayload {
+  name: string;
+  owner_email: string;
+  owner_name: string;
+  plan_name: "Organization";
+  billing_interval: OrganizationBillingInterval;
+  paid_member_seats: number;
+  idempotency_key: string;
+}
+
+export interface EmailInvitee {
+  email: string;
+  name?: string;
+}
+
+export interface OrganizationMembersPayload {
+  teacher_ids: string[];
+  email_invitees: EmailInvitee[];
+  idempotency_key: string;
+}
+
+export interface OrganizationMembersResponse {
+  organization_id: number;
+  requested: number;
+  added: number;
+  invited: number;
+  unchanged: number;
+  failed: number;
+  current_occupancy: number;
+  remaining_occupancy: number;
+  results: Array<{
+    input_type: "teacher_id" | "email";
+    status: string;
+    teacher_id: string | null;
+    email: string | null;
+    name: string | null;
+    member_id: number | null;
+    invitation_id: number | null;
+    reason_code: string | null;
+    message: string | null;
+  }>;
 }

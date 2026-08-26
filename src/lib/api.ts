@@ -12,8 +12,58 @@ import {
   ReadAloudType,
   AIUsageResponse,
   AIUsageCallsResponse,
-  QuestionOption
+  QuestionOption,
+  OrganizationListResponse,
+  OrganizationDetail,
+  CreateOrganizationPayload,
+  OrganizationMembersPayload,
+  OrganizationMembersResponse,
+  OrganizationBillingSource,
+  OrganizationLifecycleStatus
 } from "./types";
+
+function getApiBase() {
+  const configured = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+  return configured.replace(/^http:(?!\/\/)/, "http://").replace(/\/$/, "");
+}
+
+async function readError(res: Response) {
+  const text = await res.text();
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.detail || parsed.message || parsed.error || text;
+  } catch {
+    return text;
+  }
+}
+
+export class ApiRequestError extends Error {
+  status: number;
+  detail: string;
+
+  constructor(message: string, status: number, detail: string) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+function apiError(action: string, res: Response, detail: string) {
+  return new ApiRequestError(`${action}: ${res.status} ${detail}`, res.status, detail);
+}
+
+function adminHeaders(token?: string | null, userId?: string | null): HeadersInit {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    accept: "application/json",
+  };
+
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (userId) headers["X-Clerk-User-Id"] = userId;
+
+  return headers;
+}
 
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
   const questions = data.questions.map((q: any, index: number) => {
@@ -209,9 +259,26 @@ export async function getFeedbacks(token?: string | null, userId?: string | null
   return res.json();
 }
 
-export async function getTeachers(token?: string | null, userId?: string | null, limit: number = 20, offset: number = 0): Promise<TeacherListResponse> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
-  const url = `${baseUrl}/v1/admin/teachers?limit=${limit}&offset=${offset}`;
+export async function getTeachers(
+  token?: string | null,
+  userId?: string | null,
+  limit: number = 20,
+  offset: number = 0,
+  filters?: {
+    organizationId?: number | string;
+    email?: string;
+    name?: string;
+  }
+): Promise<TeacherListResponse> {
+  const baseUrl = getApiBase();
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+  });
+  if (filters?.organizationId) params.set("organization_id", filters.organizationId.toString());
+  if (filters?.email) params.set("email", filters.email);
+  if (filters?.name) params.set("name", filters.name);
+  const url = `${baseUrl}/v1/admin/teachers?${params.toString()}`;
 
   console.log(`[API] Fetching teachers from: ${url}`);
 
@@ -467,6 +534,157 @@ export async function getAIUsageCalls(
     const errorText = await res.text();
     console.error(`[API Error AI Usage Calls] Status: ${res.status}, Body: ${errorText}`);
     throw new Error(`Failed to fetch AI usage calls: ${res.status} ${errorText}`);
+  }
+
+  return res.json();
+}
+
+export async function getOrganizations(
+  token: string | null,
+  userId: string | null,
+  params: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    lifecycleStatus?: OrganizationLifecycleStatus | "";
+    billingSource?: OrganizationBillingSource | "";
+  } = {}
+): Promise<OrganizationListResponse> {
+  const baseUrl = getApiBase();
+  const query = new URLSearchParams({
+    limit: (params.limit ?? 20).toString(),
+    offset: (params.offset ?? 0).toString(),
+  });
+  if (params.search) query.set("search", params.search);
+  if (params.lifecycleStatus) query.set("lifecycle_status", params.lifecycleStatus);
+  if (params.billingSource) query.set("billing_source", params.billingSource);
+
+  const res = await fetch(`${baseUrl}/v1/admin/organizations?${query.toString()}`, {
+    headers: adminHeaders(token, userId),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    throw apiError("Failed to fetch organizations", res, await readError(res));
+  }
+
+  return res.json();
+}
+
+export async function getOrganizationById(
+  token: string | null,
+  userId: string | null,
+  organizationId: string | number
+): Promise<OrganizationDetail> {
+  const baseUrl = getApiBase();
+  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}`, {
+    headers: adminHeaders(token, userId),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    throw apiError("Failed to fetch organization", res, await readError(res));
+  }
+
+  return res.json();
+}
+
+export async function createManualOrganization(
+  token: string | null,
+  userId: string | null,
+  payload: CreateOrganizationPayload
+): Promise<OrganizationDetail> {
+  const baseUrl = getApiBase();
+  const res = await fetch(`${baseUrl}/v1/admin/organizations`, {
+    method: "POST",
+    headers: adminHeaders(token, userId),
+    body: JSON.stringify(payload),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    throw apiError("Failed to create organization", res, await readError(res));
+  }
+
+  return res.json();
+}
+
+export async function addOrganizationMembers(
+  token: string | null,
+  userId: string | null,
+  organizationId: string | number,
+  payload: OrganizationMembersPayload
+): Promise<OrganizationMembersResponse> {
+  const baseUrl = getApiBase();
+  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}/members`, {
+    method: "POST",
+    headers: adminHeaders(token, userId),
+    body: JSON.stringify(payload),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    throw apiError("Failed to add members", res, await readError(res));
+  }
+
+  return res.json();
+}
+
+export async function removeOrganizationMember(
+  token: string | null,
+  userId: string | null,
+  organizationId: string | number,
+  teacherId: string
+): Promise<{ status: string; message: string; organization_id: number }> {
+  const baseUrl = getApiBase();
+  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}/members/${teacherId}`, {
+    method: "DELETE",
+    headers: adminHeaders(token, userId),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    throw apiError("Failed to remove member", res, await readError(res));
+  }
+
+  return res.json();
+}
+
+export async function cancelOrganizationInvite(
+  token: string | null,
+  userId: string | null,
+  organizationId: string | number,
+  invitationId: string | number
+): Promise<{ status: string; message: string; organization_id: number }> {
+  const baseUrl = getApiBase();
+  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}/invites/${invitationId}/cancel`, {
+    method: "POST",
+    headers: adminHeaders(token, userId),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    throw apiError("Failed to cancel invite", res, await readError(res));
+  }
+
+  return res.json();
+}
+
+export async function resendOrganizationInvite(
+  token: string | null,
+  userId: string | null,
+  organizationId: string | number,
+  invitationId: string | number
+): Promise<{ status: string; invitation_id: number }> {
+  const baseUrl = getApiBase();
+  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}/invites/${invitationId}/resend`, {
+    method: "POST",
+    headers: adminHeaders(token, userId),
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    throw apiError("Failed to resend invite", res, await readError(res));
   }
 
   return res.json();
