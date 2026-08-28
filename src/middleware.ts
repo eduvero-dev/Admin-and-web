@@ -17,7 +17,7 @@ const isProtectedRoute = createRouteMatcher([
   '/admin/analytics(.*)',
 ]);
 
-export const proxy = clerkMiddleware(async (auth, req) => {
+export const middleware = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     // Step 1: ensure user is authenticated (redirects to /admin if not)
     const { userId } = await auth.protect();
@@ -45,7 +45,7 @@ export const proxy = clerkMiddleware(async (auth, req) => {
   }
 });
 
-export default proxy;
+export default middleware;
 
 export const config = {
   matcher: [
