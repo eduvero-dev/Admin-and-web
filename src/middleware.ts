@@ -1,5 +1,6 @@
 import { clerkMiddleware, clerkClient, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { getAllowedClerkOrigins } from "@/lib/clerk-origins";
 
 // Routes requiring a valid Clerk session AND admin role
 const isAdminRoute = createRouteMatcher([
@@ -43,6 +44,8 @@ export const middleware = clerkMiddleware(async (auth, req) => {
       }
     }
   }
+}, {
+  authorizedParties: getAllowedClerkOrigins(),
 });
 
 export default middleware;
