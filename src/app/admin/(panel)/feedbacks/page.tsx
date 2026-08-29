@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getFeedbacks } from "@/lib/api";
 import FeedbackList from "./FeedbackList";
@@ -7,8 +7,26 @@ export default async function AdminFeedbacks() {
   const { userId } = await auth();
   if (!userId) redirect("/admin");
 
-  const token = await auth().then(a => a.getToken());
-  const data = await getFeedbacks(token, userId, 500);
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
+  const role = (user.publicMetadata as { role?: string })?.role;
+  if (role !== "admin") redirect("/admin?error=unauthorized");
+
+  let data: import("@/lib/types").FeedbackResponse = {
+    total: 0,
+    limit: 500,
+    offset: 0,
+    feedbacks: [],
+  };
+  let error = "";
+
+  try {
+    const token = await auth().then(a => a.getToken());
+    data = await getFeedbacks(token, userId, 500);
+  } catch (e) {
+    console.error("Failed to fetch feedbacks:", e);
+    error = "Feedbacks could not be loaded. Please verify the backend is configured for the production Clerk instance.";
+  }
 
   return (
     <main className="min-h-screen text-white p-8 lg:p-10 font-sans selection:bg-cyan-500/30">
@@ -25,6 +43,12 @@ export default async function AdminFeedbacks() {
           <span className="text-cyan-400 text-[9px] font-black uppercase tracking-widest">Live Feed</span>
         </div>
       </header>
+
+      {error && (
+        <div className="mb-6 flex items-center gap-3 px-5 py-3.5 rounded-2xl border text-sm font-bold bg-red-500/10 border-red-500/20 text-red-300">
+          <span className="flex-1">{error}</span>
+        </div>
+      )}
 
       <FeedbackList feedbacks={data.feedbacks} total={data.total} />
     </main>
