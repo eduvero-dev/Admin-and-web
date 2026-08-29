@@ -1,6 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import { getOrganizationById } from "@/lib/api";
+import { getFreshAdminToken } from "@/lib/admin-auth";
 import OrganizationDetailClient from "./OrganizationDetailClient";
 
 interface PageProps {
@@ -20,7 +21,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
   const { id } = await params;
 
   try {
-    const organization = await getOrganizationById(await authState.getToken(), userId, id);
+    const organization = await getOrganizationById(await getFreshAdminToken(authState), userId, id);
     return <OrganizationDetailClient initialOrganization={organization} />;
   } catch (error) {
     console.error("Failed to fetch organization:", error);

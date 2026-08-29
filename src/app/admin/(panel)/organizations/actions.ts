@@ -1,6 +1,7 @@
 "use server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import { getFreshAdminToken } from "@/lib/admin-auth";
 import {
   ApiRequestError,
   addOrganizationMembers,
@@ -57,7 +58,7 @@ async function requireAdmin() {
 
   return {
     userId,
-    token: await authState.getToken(),
+    token: await getFreshAdminToken(authState),
   };
 }
 

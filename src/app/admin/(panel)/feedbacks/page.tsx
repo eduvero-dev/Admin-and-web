@@ -1,6 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getFeedbacks } from "@/lib/api";
+import { getFreshAdminToken } from "@/lib/admin-auth";
 import FeedbackList from "./FeedbackList";
 
 export default async function AdminFeedbacks() {
@@ -21,7 +22,7 @@ export default async function AdminFeedbacks() {
   let error = "";
 
   try {
-    const token = await auth().then(a => a.getToken());
+    const token = await getFreshAdminToken();
     data = await getFeedbacks(token, userId, 500);
   } catch (e) {
     console.error("Failed to fetch feedbacks:", e);

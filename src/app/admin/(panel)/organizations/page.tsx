@@ -1,6 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getOrganizations } from "@/lib/api";
+import { getFreshAdminToken } from "@/lib/admin-auth";
 import { OrganizationBillingSource, OrganizationLifecycleStatus } from "@/lib/types";
 import OrganizationsClient from "./OrganizationsClient";
 
@@ -34,7 +35,7 @@ export default async function OrganizationsPage({
   let error = "";
 
   try {
-    data = await getOrganizations(await authState.getToken(), userId, {
+    data = await getOrganizations(await getFreshAdminToken(authState), userId, {
       limit,
       offset,
       search: params.search?.trim(),

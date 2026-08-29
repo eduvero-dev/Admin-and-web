@@ -1,6 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getAIUsage, getAIUsageCalls, getTeachers } from "@/lib/api";
+import { getFreshAdminToken } from "@/lib/admin-auth";
 import AIUsageClient from "./AIUsageClient";
 
 interface SearchParams {
@@ -33,7 +34,7 @@ export default async function AIUsagePage({
   let teachersData: import("@/lib/types").TeacherListResponse | undefined;
 
   try {
-    const token = await auth().then(a => a.getToken());
+    const token = await getFreshAdminToken();
 
     // Fetch data based on active tab to optimize API calls
     if (activeTab === "users") {

@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { updateFeedbackStatus } from "@/lib/api";
+import { getFreshAdminToken } from "@/lib/admin-auth";
 
 export async function setFeedbackStatus(
   feedbackId: string,
@@ -10,6 +11,6 @@ export async function setFeedbackStatus(
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const token = await auth().then(a => a.getToken());
+  const token = await getFreshAdminToken();
   return updateFeedbackStatus(token, userId, feedbackId, status);
 }

@@ -2,6 +2,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getDashboardAnalytics, getFeedbacks } from "@/lib/api";
+import { getFreshAdminToken } from "@/lib/admin-auth";
 import {
   GraduationCap,
   ClipboardList,
@@ -29,7 +30,7 @@ export default async function AdminDashboard() {
   let feedbackData: import("@/lib/types").FeedbackResponse | undefined;
 
   try {
-    const token = await auth().then(a => a.getToken());
+    const token = await getFreshAdminToken();
     analytics = await getDashboardAnalytics(token, userId);
     feedbackData = await getFeedbacks(token, userId, 4);
   } catch (error) {

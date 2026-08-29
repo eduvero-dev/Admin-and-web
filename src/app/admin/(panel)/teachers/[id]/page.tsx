@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import { getTeacherById } from "@/lib/api";
+import { getFreshAdminToken } from "@/lib/admin-auth";
 import TeacherDetailContent from "./TeacherDetailContent";
 
 interface PageProps {
@@ -12,7 +13,7 @@ export default async function AdminTeacherDetail({ params }: PageProps) {
   if (!userId) redirect("/admin");
 
   const { id } = await params;
-  const token = await auth().then(a => a.getToken());
+  const token = await getFreshAdminToken();
   
   let teacher;
   try {
