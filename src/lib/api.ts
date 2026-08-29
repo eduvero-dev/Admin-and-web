@@ -53,14 +53,13 @@ function apiError(action: string, res: Response, detail: string) {
   return new ApiRequestError(`${action}: ${res.status} ${detail}`, res.status, detail);
 }
 
-function adminHeaders(token?: string | null, userId?: string | null): HeadersInit {
+function adminHeaders(token?: string | null, _userId?: string | null): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     accept: "application/json",
   };
 
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (userId) headers["X-Clerk-User-Id"] = userId;
 
   return headers;
 }
@@ -181,10 +180,6 @@ export async function getDashboardAnalytics(token?: string | null, userId?: stri
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  if (userId) {
-    headers['X-Clerk-User-Id'] = userId;
-  }
-
   const res = await fetch(url, {
     headers,
     next: { revalidate: 0 }
@@ -210,7 +205,6 @@ export async function updateFeedbackStatus(
 
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (userId) headers["X-Clerk-User-Id"] = userId;
 
   const res = await fetch(url, {
     method: "PATCH",
@@ -239,10 +233,6 @@ export async function getFeedbacks(token?: string | null, userId?: string | null
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  if (userId) {
-    headers['X-Clerk-User-Id'] = userId;
   }
 
   const res = await fetch(url, {
@@ -290,10 +280,6 @@ export async function getTeachers(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  if (userId) {
-    headers['X-Clerk-User-Id'] = userId;
-  }
-
   const res = await fetch(url, {
     headers,
     next: { revalidate: 0 }
@@ -322,10 +308,6 @@ export async function getTeacherById(token: string | null, userId: string | null
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  if (userId) {
-    headers['X-Clerk-User-Id'] = userId;
-  }
-
   const res = await fetch(url, {
     headers,
     next: { revalidate: 0 }
@@ -346,7 +328,6 @@ export async function getAssessmentDetail(token: string | null, userId: string |
 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (userId) headers['X-Clerk-User-Id'] = userId;
 
   const res = await fetch(url, { headers, next: { revalidate: 0 } });
   if (!res.ok) throw new Error("Failed to fetch assessment detail");
@@ -359,7 +340,6 @@ export async function getStrategyDetail(token: string | null, userId: string | n
 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (userId) headers['X-Clerk-User-Id'] = userId;
 
   const res = await fetch(url, { headers, next: { revalidate: 0 } });
   if (!res.ok) throw new Error("Failed to fetch strategy detail");
@@ -372,7 +352,6 @@ export async function getLessonPlanDetail(token: string | null, userId: string |
 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (userId) headers['X-Clerk-User-Id'] = userId;
 
   const res = await fetch(url, { headers, next: { revalidate: 0 } });
   if (!res.ok) throw new Error("Failed to fetch lesson plan detail");
@@ -414,10 +393,6 @@ export async function createStripeCheckout(params: {
     "Content-Type": "application/json",
   };
 
-  if (params.userId) {
-    headers["X-Clerk-User-Id"] = params.userId;
-  }
-
   const res = await fetch(url, {
     method: "POST",
     headers,
@@ -446,7 +421,6 @@ export async function updateUserPlan(
 
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (userId) headers["X-Clerk-User-Id"] = userId;
 
   const res = await fetch(url, {
     method: "PATCH",
@@ -483,10 +457,6 @@ export async function getAIUsage(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  if (userId) {
-    headers['X-Clerk-User-Id'] = userId;
-  }
-
   const res = await fetch(url, {
     headers,
     next: { revalidate: 0 }
@@ -519,10 +489,6 @@ export async function getAIUsageCalls(
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  if (userId) {
-    headers['X-Clerk-User-Id'] = userId;
   }
 
   const res = await fetch(url, {
