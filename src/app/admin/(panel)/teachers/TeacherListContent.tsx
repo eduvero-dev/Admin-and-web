@@ -11,9 +11,10 @@ type Plan = "Freemium" | "Insight" | "Impact Pro";
 interface TeacherListContentProps {
   teachers: TeacherSummary[];
   total: number;
+  error?: string;
 }
 
-export default function TeacherListContent({ teachers, total }: TeacherListContentProps) {
+export default function TeacherListContent({ teachers, total, error }: TeacherListContentProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkPlan, setBulkPlan] = useState<Plan>("Freemium");
@@ -100,6 +101,13 @@ export default function TeacherListContent({ teachers, total }: TeacherListConte
       </header>
 
       {/* Result toast */}
+      {error && (
+        <div className="mb-4 flex items-center gap-3 px-5 py-3.5 rounded-2xl border text-sm font-bold bg-red-500/10 border-red-500/20 text-red-300">
+          <XCircle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">{error}</span>
+        </div>
+      )}
+
       {result && (
         <div className={`mb-4 flex items-center gap-3 px-5 py-3.5 rounded-2xl border text-sm font-bold ${result.type === "success" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400"}`}>
           {result.type === "success" ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}

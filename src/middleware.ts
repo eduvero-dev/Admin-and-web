@@ -4,16 +4,24 @@ import { getAllowedClerkOrigins } from "@/lib/clerk-origins";
 
 // Routes requiring a valid Clerk session AND admin role
 const isAdminRoute = createRouteMatcher([
+  '/admin/ai-usage(.*)',
   '/admin/dashboard(.*)',
+  '/admin/feedbacks(.*)',
+  '/admin/logs(.*)',
   '/admin/organizations(.*)',
+  '/admin/teachers(.*)',
   '/admin/settings(.*)',
   '/admin/analytics(.*)',
 ]);
 
 // Routes requiring only a valid Clerk session (no role check)
 const isProtectedRoute = createRouteMatcher([
+  '/admin/ai-usage(.*)',
   '/admin/dashboard(.*)',
+  '/admin/feedbacks(.*)',
+  '/admin/logs(.*)',
   '/admin/organizations(.*)',
+  '/admin/teachers(.*)',
   '/admin/settings(.*)',
   '/admin/analytics(.*)',
 ]);
