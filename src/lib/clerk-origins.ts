@@ -1,4 +1,4 @@
-const DEFAULT_APP_ORIGIN = "https://app.eduvero.com";
+const DEFAULT_APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL;
 
 export function getAllowedClerkOrigins() {
   const origins = [
