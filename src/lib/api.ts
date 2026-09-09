@@ -64,33 +64,55 @@ function adminHeaders(token?: string | null, _userId?: string | null): HeadersIn
   return headers;
 }
 
+const answerLabels = ["a", "b", "c", "d"] as const;
+type AnswerLabel = (typeof answerLabels)[number];
+
+function normalizeAnswerText(value: unknown) {
+  return value
+    ?.toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ") || "";
+}
+
+function parseCorrectAnswer(rawAnswer: unknown, choiceValues: unknown[]): AnswerLabel | null {
+  const normalizedAnswer = normalizeAnswerText(rawAnswer);
+  if (!normalizedAnswer) return null;
+
+  const exactLabel = normalizedAnswer.match(/^(?:option\s*)?[\(\[]?([a-d])[\)\].:]?$/);
+  if (exactLabel) return exactLabel[1] as AnswerLabel;
+
+  const answerByText = answerLabels.find(
+    (_label, choiceIndex) => normalizeAnswerText(choiceValues[choiceIndex]) === normalizedAnswer
+  );
+  if (answerByText) return answerByText;
+
+  const optionPrefix = normalizedAnswer.match(/^(?:option\s*)?[\(\[]?([a-d])[\)\].:]\s+/);
+  if (optionPrefix) return optionPrefix[1] as AnswerLabel;
+
+  return null;
+}
+
 function transformAssessmentJson(data: any, assessmentId: string): Assessment {
   const questions = data.questions.map((q: any, index: number) => {
     const rawChoices = q.student_view?.choices;
     const choiceValues = Array.isArray(rawChoices)
       ? rawChoices
       : [q.a, q.b, q.c, q.d];
-    const labels = ["a", "b", "c", "d"] as const;
-    const answerText = (
+    const rawAnswer = (
       q.answer ??
       q.teacher_metadata?.correct_answer ??
       q.correct_answer ??
       q.correctAnswer ??
       q.student_view?.answer
-    )?.toString();
-    const answerMatch = answerText?.toLowerCase().match(/[a-d]/);
-    const answerByText = labels.find(
-      (label, choiceIndex) =>
-        choiceValues[choiceIndex]?.toString().trim().toLowerCase() ===
-        answerText?.trim().toLowerCase()
     );
-    const parsedAnswer = answerMatch?.[0] || answerByText || "a";
+    const parsedAnswer = parseCorrectAnswer(rawAnswer, choiceValues);
 
     return {
       id: q.question_id?.toString() || `q_${assessmentId}_${index}`,
       text: q.student_view?.question_text || q.question,
-      correctAnswer: parsedAnswer as "a" | "b" | "c" | "d",
-      options: labels.map((label, choiceIndex) => ({
+      correctAnswer: parsedAnswer,
+      options: answerLabels.map((label, choiceIndex) => ({
         id: `opt_${assessmentId}_${index}_${label}`,
         label,
         text: choiceValues[choiceIndex]?.toString() || "",

@@ -101,10 +101,16 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
       // Calculate score
       const total = assessment.questions.length;
       let correct = 0;
+      let knownCorrectAnswers = 0;
       assessment.questions.forEach((q) => {
+        if (!q.correctAnswer) return;
+        knownCorrectAnswers++;
         if (answers[q.id] === q.correctAnswer) correct++;
       });
-      const scoreVal = Math.round((correct / total) * 100);
+      const answeredTotal = Object.keys(answers).length;
+      const scoreVal = knownCorrectAnswers > 0
+        ? Math.round((correct / total) * 100)
+        : Math.round((answeredTotal / total) * 100);
 
       const now = new Date().toISOString().split("T")[0];
 
@@ -119,7 +125,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
       });
 
       try {
-        await submitAssessmentResults({
+        const result = await submitAssessmentResults({
           access_code: accessCode,
           assessment_id: parseInt(assessment.assessment_id),
           class_id: assessment.class_id ? parseInt(assessment.class_id) : 0,
@@ -129,13 +135,21 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           responses: responses,
           roll_number: selectedStudent?.roll_number,
         });
+        const submittedScore =
+          typeof result?.score === "number"
+            ? result.score
+            : typeof result?.percentage === "number"
+              ? result.percentage
+              : knownCorrectAnswers > 0
+                ? scoreVal
+                : null;
 
         // Exit fullscreen on successful submission
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => { });
         }
 
-        setScore(scoreVal);
+        setScore(submittedScore);
         setSubmitted(true);
         router.push(`/assessment/submitted`);
       } catch (err: any) {
@@ -145,7 +159,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           if (document.fullscreenElement) {
             document.exitFullscreen().catch(() => { });
           }
-          setScore(scoreVal);
+          setScore(knownCorrectAnswers > 0 ? scoreVal : null);
           setSubmitted(true);
           router.push(`/assessment/submitted`);
         } else {
@@ -206,7 +220,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   // Calculate missed questions: unanswered + incorrect
   const unansweredCount = totalQ - answeredCount;
   const incorrectCount = randomizedQuestions.filter(
-    (question) => answers[question.id] && answers[question.id] !== question.correctAnswer
+    (question) => question.correctAnswer && answers[question.id] && answers[question.id] !== question.correctAnswer
   ).length;
   const missedQuestionsCount = unansweredCount + incorrectCount;
 
