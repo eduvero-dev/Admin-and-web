@@ -37,7 +37,7 @@ interface AssessmentStore {
   setAutoSubmitted: (val: boolean) => void;
   setCurrentQuestionIndex: (i: number) => void;
   setSubmitted: (val: boolean) => void;
-  setScore: (score: number) => void;
+  setScore: (score: number | null) => void;
   setReadAloudEnabled: (enabled: boolean) => void;
   reset: () => void;
 }

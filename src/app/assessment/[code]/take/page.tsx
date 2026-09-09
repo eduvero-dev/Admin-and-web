@@ -5,8 +5,10 @@ import { use, useCallback, useEffect, useState } from "react";
 import { Volume2, VolumeX, Pause, Play, RotateCcw, CheckCircle2, Clock } from "lucide-react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useHumanizedTTS } from "@/hooks/useHumanizedTTS";
-import { submitAssessmentResults } from "@/lib/api";
+import { checkAssessmentAnswers, submitAssessmentResults } from "@/lib/api";
 import { useAssessmentStore } from "@/store/assessmentStore";
+
+type AnswerCheckResult = Awaited<ReturnType<typeof checkAssessmentAnswers>>;
 
 export default function TakeAssessmentPage({ params }: { params: Promise<{ code: string }> }) {
   const resolvedParams = use(params);
@@ -51,6 +53,8 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   const [hasReviewed, setHasReviewed] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [answerCheck, setAnswerCheck] = useState<AnswerCheckResult | null>(null);
+  const [checkingAnswers, setCheckingAnswers] = useState(false);
 
   // If store is empty (page refresh), redirect home
   useEffect(() => {
@@ -91,6 +95,19 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
     [readAloudEnabled, speak]
   );
 
+  const buildResponses = useCallback(() => {
+    const responses: Record<string, string> = {};
+
+    assessment?.questions.forEach((q, index) => {
+      if (answers[q.id]) {
+        const responseKey = q.id.startsWith("q_") ? index.toString() : q.id;
+        responses[responseKey] = answers[q.id];
+      }
+    });
+
+    return responses;
+  }, [assessment, answers]);
+
   const doSubmit = useCallback(
     async (auto = false) => {
       if (!assessment || submitting) return;
@@ -101,41 +118,42 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
       // Calculate score
       const total = assessment.questions.length;
       let correct = 0;
+      let knownCorrectAnswers = 0;
       assessment.questions.forEach((q) => {
+        if (!q.correctAnswer) return;
+        knownCorrectAnswers++;
         if (answers[q.id] === q.correctAnswer) correct++;
       });
-      const scoreVal = Math.round((correct / total) * 100);
+      const scoreVal = knownCorrectAnswers > 0 ? Math.round((correct / total) * 100) : null;
 
       const now = new Date().toISOString().split("T")[0];
 
-      // New roster assessments use backend question_ids like "q-1";
-      // legacy assessments still expect numeric index keys.
-      const responses: Record<string, string> = {};
-      assessment.questions.forEach((q, index) => {
-        if (answers[q.id]) {
-          const responseKey = q.id.startsWith("q_") ? index.toString() : q.id;
-          responses[responseKey] = answers[q.id];
-        }
-      });
+      const responses = buildResponses();
 
       try {
-        await submitAssessmentResults({
+        const result = await submitAssessmentResults({
           access_code: accessCode,
           assessment_id: parseInt(assessment.assessment_id),
           class_id: assessment.class_id ? parseInt(assessment.class_id) : 0,
           date_administered: now,
-          score: scoreVal,
+          score: scoreVal ?? 0,
           submitted: now, // Backend expects simple date string
           responses: responses,
           roll_number: selectedStudent?.roll_number,
         });
+        const submittedScore =
+          typeof result?.score === "number"
+            ? result.score
+              : typeof result?.percentage === "number"
+                ? result.percentage
+                : scoreVal;
 
         // Exit fullscreen on successful submission
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => { });
         }
 
-        setScore(scoreVal);
+        setScore(submittedScore);
         setSubmitted(true);
         router.push(`/assessment/submitted`);
       } catch (err: any) {
@@ -145,7 +163,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           if (document.fullscreenElement) {
             document.exitFullscreen().catch(() => { });
           }
-          setScore(scoreVal);
+          setScore(knownCorrectAnswers > 0 ? scoreVal : null);
           setSubmitted(true);
           router.push(`/assessment/submitted`);
         } else {
@@ -154,7 +172,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
         }
       }
     },
-    [assessment, submitting, accessCode, answers, selectedStudent, setAutoSubmitted, setScore, setSubmitted, router]
+    [assessment, submitting, accessCode, answers, selectedStudent, setAutoSubmitted, setScore, setSubmitted, router, buildResponses]
   );
 
   const handleWarn = useCallback(() => setShowWarning(true), []);
@@ -206,13 +224,17 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
   // Calculate missed questions: unanswered + incorrect
   const unansweredCount = totalQ - answeredCount;
   const incorrectCount = randomizedQuestions.filter(
-    (question) => answers[question.id] && answers[question.id] !== question.correctAnswer
+    (question) => question.correctAnswer && answers[question.id] && answers[question.id] !== question.correctAnswer
   ).length;
   const missedQuestionsCount = unansweredCount + incorrectCount;
+  const reviewUnansweredCount = answerCheck?.unanswered ?? unansweredCount;
+  const reviewIncorrectCount = answerCheck?.incorrect ?? incorrectCount;
+  const reviewMissedQuestionsCount = answerCheck?.missed ?? missedQuestionsCount;
 
   const handleStartReview = useCallback(() => {
     setIsReviewMode(true);
     setHasReviewed(true);
+    setAnswerCheck(null);
     setShowConfirmation(false);
     setCurrentQ(0); // Go back to first question
   }, []);
@@ -222,9 +244,23 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
     setShowConfirmation(true); // Return to confirmation screen
   }, []);
 
-  const handleContinueToConfirmation = useCallback(() => {
-    setShowConfirmation(true);
-  }, []);
+  const handleContinueToConfirmation = useCallback(async () => {
+    if (!assessment || checkingAnswers) return;
+
+    setCheckingAnswers(true);
+    setSubmitError("");
+
+    try {
+      const result = await checkAssessmentAnswers(accessCode || resolvedParams.code.toUpperCase(), buildResponses());
+      setAnswerCheck(result);
+    } catch (error) {
+      console.error("Answer check error:", error);
+      setAnswerCheck(null);
+    } finally {
+      setCheckingAnswers(false);
+      setShowConfirmation(true);
+    }
+  }, [assessment, checkingAnswers, accessCode, resolvedParams.code, buildResponses]);
 
   // Format time remaining as MM:SS
   const formatTime = (seconds: number): string => {
@@ -367,24 +403,24 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
             </div>
             <h2 className="text-2xl font-bold text-white mb-3">Ready to Submit?</h2>
 
-            {!hasReviewed && missedQuestionsCount > 0 ? (
+            {!hasReviewed && reviewMissedQuestionsCount > 0 ? (
               <>
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-6">
                   <div className="flex items-center justify-center gap-3 mb-3">
                     <span className="text-3xl">⚠️</span>
                     <p className="text-amber-400 font-bold text-lg">
-                      You have missed {missedQuestionsCount} question{missedQuestionsCount > 1 ? 's' : ''}
+                      You have missed {reviewMissedQuestionsCount} question{reviewMissedQuestionsCount > 1 ? 's' : ''}
                     </p>
                   </div>
                   <div className="text-amber-300/80 text-sm">
-                    {unansweredCount > 0 && incorrectCount > 0 && (
-                      <p>{unansweredCount} unanswered, {incorrectCount} incorrect</p>
+                    {reviewUnansweredCount > 0 && reviewIncorrectCount > 0 && (
+                      <p>{reviewUnansweredCount} unanswered, {reviewIncorrectCount} incorrect</p>
                     )}
-                    {unansweredCount > 0 && incorrectCount === 0 && (
-                      <p>{unansweredCount} unanswered</p>
+                    {reviewUnansweredCount > 0 && reviewIncorrectCount === 0 && (
+                      <p>{reviewUnansweredCount} unanswered</p>
                     )}
-                    {unansweredCount === 0 && incorrectCount > 0 && (
-                      <p>{incorrectCount} incorrect</p>
+                    {reviewUnansweredCount === 0 && reviewIncorrectCount > 0 && (
+                      <p>{reviewIncorrectCount} incorrect</p>
                     )}
                   </div>
                 </div>
@@ -480,6 +516,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
                 key={opt.id}
                 onClick={() => {
                   setAnswer(q.id, opt.label);
+                  setAnswerCheck(null);
                   if (readAloudEnabled && isReadAloudAvailable) {
                     handleTextClick(`${opt.label}. ${opt.text}`);
                   }
@@ -536,9 +573,10 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           ) : (
             <button
               onClick={handleContinueToConfirmation}
+              disabled={checkingAnswers}
               className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
             >
-              Continue →
+              {checkingAnswers ? "Checking..." : "Continue →"}
             </button>
           )}
         </div>

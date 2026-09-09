@@ -7,8 +7,6 @@ export default function SubmittedPage() {
   const router = useRouter();
   const { score, assessment, autoSubmitted, reset } = useAssessmentStore();
 
-  const resultScore = score ?? 0;
-
   const handleDone = () => {
     reset();
     router.push("/");
@@ -77,8 +75,8 @@ export default function SubmittedPage() {
                   <span className="text-white truncate max-w-[150px]">{assessment.title}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-widest">
-                  <span className="text-white/30">Result</span>
-                  <span className="text-white">{resultScore}%</span>
+                  <span className="text-white/30">{score !== null ? "Result" : "Status"}</span>
+                  <span className="text-white">{score !== null ? `${score}%` : "Submitted"}</span>
                 </div>
               </div>
             )}

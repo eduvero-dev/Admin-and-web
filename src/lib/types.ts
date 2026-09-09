@@ -9,7 +9,7 @@ export interface QuestionOption {
 export interface Question {
   id: string;
   text: string;
-  correctAnswer: "a" | "b" | "c" | "d";
+  correctAnswer: "a" | "b" | "c" | "d" | null;
   options: QuestionOption[];
 }
 
