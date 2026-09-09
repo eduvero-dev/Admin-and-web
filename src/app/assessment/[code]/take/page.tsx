@@ -107,10 +107,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
         knownCorrectAnswers++;
         if (answers[q.id] === q.correctAnswer) correct++;
       });
-      const answeredTotal = Object.keys(answers).length;
-      const scoreVal = knownCorrectAnswers > 0
-        ? Math.round((correct / total) * 100)
-        : Math.round((answeredTotal / total) * 100);
+      const scoreVal = knownCorrectAnswers > 0 ? Math.round((correct / total) * 100) : null;
 
       const now = new Date().toISOString().split("T")[0];
 
@@ -130,7 +127,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
           assessment_id: parseInt(assessment.assessment_id),
           class_id: assessment.class_id ? parseInt(assessment.class_id) : 0,
           date_administered: now,
-          score: scoreVal,
+          score: scoreVal ?? 0,
           submitted: now, // Backend expects simple date string
           responses: responses,
           roll_number: selectedStudent?.roll_number,
@@ -138,11 +135,9 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ code:
         const submittedScore =
           typeof result?.score === "number"
             ? result.score
-            : typeof result?.percentage === "number"
-              ? result.percentage
-              : knownCorrectAnswers > 0
-                ? scoreVal
-                : null;
+              : typeof result?.percentage === "number"
+                ? result.percentage
+                : scoreVal;
 
         // Exit fullscreen on successful submission
         if (document.fullscreenElement) {
