@@ -5,7 +5,7 @@ function stripTeacherMetadata(obj: any): any {
   if (Array.isArray(obj)) return obj.map(stripTeacherMetadata);
   if (obj && typeof obj === "object") {
     const { teacher_metadata, ...rest } = obj;
-    void teacher_metadata; // intentionally dropped
+    void teacher_metadata;
     return Object.fromEntries(
       Object.entries(rest).map(([k, v]) => [k, stripTeacherMetadata(v)])
     );
@@ -65,10 +65,7 @@ export async function GET(
 
     const data = await res.json();
 
-    // Strip teacher_metadata (correct answers) from every question
-    // so they are never exposed to the browser via the Network tab.
-    const stripped = stripTeacherMetadata(data);
-    return NextResponse.json(stripped);
+    return NextResponse.json(stripTeacherMetadata(data));
   } catch (error: any) {
     console.error(`[Proxy GET] Internal error:`, error);
     return NextResponse.json(

@@ -189,6 +189,31 @@ export async function submitAssessmentResults(payload: SubmitResultsPayload): Pr
   return res.json();
 }
 
+export async function checkAssessmentAnswers(
+  accessCode: string,
+  responses: Record<string, string>
+): Promise<{
+  total: number;
+  answered: number;
+  unanswered: number;
+  incorrect: number;
+  missed: number;
+  correct: number;
+  score: number | null;
+}> {
+  const res = await fetch(`/api/assessment/${accessCode}/check`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ responses }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to check assessment answers");
+  }
+
+  return res.json();
+}
+
 export async function getDashboardAnalytics(token?: string | null, userId?: string | null): Promise<DashboardAnalytics> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/analytics/dashboard`;
