@@ -11,7 +11,7 @@ export default function HomePage() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"choice" | "student">("choice");
+  const [view, setView] = useState<"choice" | "student">("student");
 
   const navigateAdmin = () => {
     router.push("/admin");
@@ -60,36 +60,17 @@ export default function HomePage() {
           </div>
 
           <p className="text-cyan-400/90 text-[10px] font-bold tracking-[0.3em] uppercase mb-4">
-            {view !== "choice" && "Lockdown Browser"}
+            Lockdown Browser
           </p>
 
           <h1 className="text-4xl font-bold text-white tracking-tight mb-2 text-center">
-            {view === "choice" ? "Welcome to Eduvero" : "Access Your Assessment"}
+            Access Your Assessment
           </h1>
           <p className="text-cyan-400 text-sm font-medium mb-4">
             Secure Session Environment
           </p>
 
-          {view === "choice" ? (
-            <div className="w-full space-y-4">
-              <button
-                onClick={() => setView("student")}
-                className="w-full py-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group flex flex-col items-center gap-2"
-              >
-                <span className="text-white font-bold text-xl">Student Access</span>
-                <span className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Enter Assessment Code</span>
-              </button>
-
-              <button
-                onClick={navigateAdmin}
-                className="w-full py-6 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition-all group flex flex-col items-center gap-2"
-              >
-                <span className="text-cyan-400 font-bold text-xl">Admin Login</span>
-                <span className="text-cyan-400/50 text-[10px] uppercase tracking-widest font-bold">Administrative Dashboard</span>
-              </button>
-            </div>
-          ) : (
-            <>
+          <>
               <p className="text-white/40 text-[11px] leading-relaxed mb-8 text-center max-w-[480px]">
                 Copy the access code given to you by your teacher here.
               </p>
@@ -125,41 +106,30 @@ export default function HomePage() {
                   </div>
                 )}
 
-                <div className="flex flex-col gap-3">
-                  <button
-                    type="submit"
-                    disabled={loading || !code.trim()}
-                    className="w-full py-5 rounded-2xl bg-cyan-500 text-[#021a1d] font-bold text-lg shadow-[0_0_25px_rgba(6,182,212,0.3)] hover:bg-cyan-400 hover:shadow-[0_0_35px_rgba(6,182,212,0.4)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                        </svg>
-                        Searching…
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center gap-2">
-                        Find Assessment
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setView("choice")}
-                    className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] hover:text-white/50 transition-colors"
-                  >
-                    Back to Selection
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={loading || !code.trim()}
+                  className="w-full py-5 rounded-2xl bg-cyan-500 text-[#021a1d] font-bold text-lg shadow-[0_0_25px_rgba(6,182,212,0.3)] hover:bg-cyan-400 hover:shadow-[0_0_35px_rgba(6,182,212,0.4)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Searching…
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      Find Assessment
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
               </form>
             </>
-          )}
 
           {/* Help Button */}
           <div className="mt-12 text-center">
