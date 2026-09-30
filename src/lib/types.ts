@@ -350,3 +350,85 @@ export interface OrganizationMembersResponse {
     message: string | null;
   }>;
 }
+
+export type ReferralDrawStatus =
+  | "scheduled"
+  | "open"
+  | "reconciling"
+  | "frozen"
+  | "drawn"
+  | "claim_ready"
+  | "claimed"
+  | "cancelled"
+  | string;
+
+export type ReferralWinnerStatus =
+  | "none"
+  | "selected"
+  | "claim_ready"
+  | "claimed"
+  | "disqualified"
+  | string;
+
+export interface AdminReferralDraw {
+  draw_id: number | string;
+  name: string;
+  status: ReferralDrawStatus;
+  qualification_starts_at: string;
+  qualification_ends_at: string;
+  draw_at: string;
+  official_rules_url: string;
+  claim_window_days: number;
+  prize_amount_cents: number;
+  prize_currency: string;
+  prize_merchant: string;
+  minimum_age: number;
+  frozen_at?: string | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  entry_count: number;
+  eligible_entry_count?: number;
+  winner?: AdminReferralDrawWinner | null;
+  snapshot_sha256?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AdminReferralDrawWinner {
+  winner_id: string;
+  entry_id: string;
+  winner_teacher_id: string;
+  status: ReferralWinnerStatus;
+  prize_amount_cents: number;
+  prize_currency: string;
+  gift_card_last_four?: string | null;
+  prize_details_added_at?: string | null;
+  claim_deadline_at?: string | null;
+  claimed_at?: string | null;
+  disqualified_at?: string | null;
+  disqualification_reason?: string | null;
+}
+
+export interface AdminReferralDrawListResponse {
+  draws: AdminReferralDraw[];
+  total: number;
+}
+
+export interface AdminReferralDrawAuditEvent {
+  event_id: number | string;
+  actor_id: string;
+  event_type: string;
+  created_at: string;
+  data: Record<string, unknown>;
+}
+
+export interface CreateReferralDrawPayload {
+  name: string;
+  qualification_starts_at: string;
+  qualification_ends_at: string;
+  draw_at: string;
+  official_rules_url: string;
+  claim_window_days: number;
+}
+
+export type UpdateReferralDrawPayload = Partial<CreateReferralDrawPayload>;
