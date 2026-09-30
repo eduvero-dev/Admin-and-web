@@ -49,7 +49,6 @@ function CreateDrawModal({ onClose }: { onClose: () => void }) {
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [drawAt, setDrawAt] = useState("");
-  const [rulesUrl, setRulesUrl] = useState("");
   const [claimWindowDays, setClaimWindowDays] = useState(14);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,18 +73,12 @@ function CreateDrawModal({ onClose }: { onClose: () => void }) {
       );
       return;
     }
-    if (!rulesUrl.toLowerCase().startsWith("https://")) {
-      setError("Official rules must use a secure HTTPS URL.");
-      return;
-    }
-
     setLoading(true);
     const result = await createReferralDrawAction({
       name: name.trim(),
       qualification_starts_at: start.toISOString(),
       qualification_ends_at: end.toISOString(),
       draw_at: draw.toISOString(),
-      official_rules_url: rulesUrl.trim(),
       claim_window_days: claimWindowDays,
     });
     if (!result.ok) {
@@ -174,18 +167,6 @@ function CreateDrawModal({ onClose }: { onClose: () => void }) {
               />
             </Field>
           </div>
-          <Field label="Official rules URL">
-            <input
-              type="url"
-              required
-              pattern="https://.*"
-              placeholder="https://eduvero.com/referral-rules"
-              value={rulesUrl}
-              onChange={(event) => setRulesUrl(event.target.value)}
-              className="draw-input"
-            />
-          </Field>
-
           <p className="rounded-xl border border-amber-500/15 bg-amber-500/5 px-4 py-3 text-[11px] font-medium leading-5 text-amber-200/60">
             Times are converted from this browser&apos;s local timezone to exact
             UTC instants before submission. Once a draw opens, its start is

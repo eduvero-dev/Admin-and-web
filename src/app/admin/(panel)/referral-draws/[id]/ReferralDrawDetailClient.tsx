@@ -296,24 +296,11 @@ export default function ReferralDrawDetailClient({
             />
             <ScheduleItem label="Draw time" value={formatDate(draw.draw_at)} />
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="mt-4">
             <ScheduleItem
               label="Claim window"
               value={`${draw.claim_window_days} days${draw.winner?.claim_deadline_at ? ` · deadline ${formatDate(draw.winner.claim_deadline_at)}` : ""}`}
             />
-            <div className="rounded-2xl border border-white/5 bg-white/[0.025] p-4">
-              <p className="text-[9px] font-black uppercase tracking-widest text-white/25">
-                Official rules
-              </p>
-              <a
-                href={draw.official_rules_url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 block truncate text-sm font-bold text-cyan-400 hover:underline"
-              >
-                {draw.official_rules_url}
-              </a>
-            </div>
           </div>
         </section>
 
@@ -587,7 +574,6 @@ function EditScheduleModal({
     qualification_starts_at?: string;
     qualification_ends_at: string;
     draw_at: string;
-    official_rules_url: string;
     claim_window_days: number;
   }) => Promise<void>;
 }) {
@@ -599,7 +585,6 @@ function EditScheduleModal({
     toLocalInput(draw.qualification_ends_at),
   );
   const [drawAt, setDrawAt] = useState(toLocalInput(draw.draw_at));
-  const [rulesUrl, setRulesUrl] = useState(draw.official_rules_url);
   const [claimDays, setClaimDays] = useState(draw.claim_window_days);
   const [error, setError] = useState("");
 
@@ -617,10 +602,6 @@ function EditScheduleModal({
       setError("Enter a valid ordered schedule.");
       return;
     }
-    if (!rulesUrl.toLowerCase().startsWith("https://")) {
-      setError("Official rules must use HTTPS.");
-      return;
-    }
     await onSubmit({
       name: name.trim(),
       ...(draw.status === "scheduled"
@@ -628,7 +609,6 @@ function EditScheduleModal({
         : {}),
       qualification_ends_at: end.toISOString(),
       draw_at: drawDate.toISOString(),
-      official_rules_url: rulesUrl.trim(),
       claim_window_days: claimDays,
     });
   };
@@ -689,15 +669,6 @@ function EditScheduleModal({
             />
           </ModalField>
         </div>
-        <ModalField label="Official rules URL">
-          <input
-            type="url"
-            required
-            value={rulesUrl}
-            onChange={(event) => setRulesUrl(event.target.value)}
-            className="modal-input"
-          />
-        </ModalField>
         {draw.status === "open" && (
           <p className="text-[10px] font-bold text-amber-300/50">
             This draw is open. Its start is locked and the backend only accepts

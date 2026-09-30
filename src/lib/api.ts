@@ -867,7 +867,10 @@ export async function createReferralDraw(
     AdminReferralDraw | { draw: AdminReferralDraw }
   >("/v1/admin/referral-draws", token, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      official_rules_url: "https://eduvero.com/referral-rules",
+    }),
   });
   return normalizeReferralDraw(result);
 }

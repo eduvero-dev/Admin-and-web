@@ -377,7 +377,6 @@ export interface AdminReferralDraw {
   qualification_starts_at: string;
   qualification_ends_at: string;
   draw_at: string;
-  official_rules_url: string;
   claim_window_days: number;
   prize_amount_cents: number;
   prize_currency: string;
@@ -427,7 +426,6 @@ export interface CreateReferralDrawPayload {
   qualification_starts_at: string;
   qualification_ends_at: string;
   draw_at: string;
-  official_rules_url: string;
   claim_window_days: number;
 }
 
