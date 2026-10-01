@@ -21,7 +21,11 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { AdminReferralDraw, AdminReferralDrawAuditEvent } from "@/lib/types";
+import {
+  AdminReferralDraw,
+  AdminReferralDrawAuditEvent,
+  UpdateReferralDrawPayload,
+} from "@/lib/types";
 import {
   cancelReferralDrawAction,
   configureReferralGiftCardAction,
@@ -569,13 +573,7 @@ function EditScheduleModal({
   draw: AdminReferralDraw;
   busy: boolean;
   onClose: () => void;
-  onSubmit: (payload: {
-    name: string;
-    qualification_starts_at?: string;
-    qualification_ends_at: string;
-    draw_at: string;
-    claim_window_days: number;
-  }) => Promise<void>;
+  onSubmit: (payload: UpdateReferralDrawPayload) => Promise<void>;
 }) {
   const [name, setName] = useState(draw.name);
   const [startsAt, setStartsAt] = useState(
@@ -602,15 +600,32 @@ function EditScheduleModal({
       setError("Enter a valid ordered schedule.");
       return;
     }
-    await onSubmit({
-      name: name.trim(),
-      ...(draw.status === "scheduled"
-        ? { qualification_starts_at: start.toISOString() }
-        : {}),
-      qualification_ends_at: end.toISOString(),
-      draw_at: drawDate.toISOString(),
-      claim_window_days: claimDays,
-    });
+    const payload: UpdateReferralDrawPayload = {};
+    const trimmedName = name.trim();
+
+    if (trimmedName !== draw.name) payload.name = trimmedName;
+    if (
+      draw.status === "scheduled" &&
+      startsAt !== toLocalInput(draw.qualification_starts_at)
+    ) {
+      payload.qualification_starts_at = start.toISOString();
+    }
+    if (endsAt !== toLocalInput(draw.qualification_ends_at)) {
+      payload.qualification_ends_at = end.toISOString();
+    }
+    if (drawAt !== toLocalInput(draw.draw_at)) {
+      payload.draw_at = drawDate.toISOString();
+    }
+    if (claimDays !== draw.claim_window_days) {
+      payload.claim_window_days = claimDays;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      onClose();
+      return;
+    }
+
+    await onSubmit(payload);
   };
 
   return (

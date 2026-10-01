@@ -898,14 +898,18 @@ export async function createReferralDraw(
   token: string | null,
   payload: CreateReferralDrawPayload,
 ): Promise<AdminReferralDraw> {
+  const requestBody: CreateReferralDrawPayload = {
+    name: payload.name,
+    qualification_starts_at: payload.qualification_starts_at,
+    qualification_ends_at: payload.qualification_ends_at,
+    draw_at: payload.draw_at,
+    claim_window_days: payload.claim_window_days,
+  };
   const result = await referralAdminRequest<
     AdminReferralDraw | { draw: AdminReferralDraw }
   >("/v1/admin/referral-draws", token, {
     method: "POST",
-    body: JSON.stringify({
-      ...payload,
-      official_rules_url: "https://eduvero.com/referral-rules",
-    }),
+    body: JSON.stringify(requestBody),
   });
   return normalizeReferralDraw(result);
 }
@@ -915,11 +919,23 @@ export async function updateReferralDraw(
   drawId: string | number,
   payload: UpdateReferralDrawPayload,
 ): Promise<AdminReferralDraw> {
+  const requestBody: UpdateReferralDrawPayload = {};
+  if (payload.name !== undefined) requestBody.name = payload.name;
+  if (payload.qualification_starts_at !== undefined) {
+    requestBody.qualification_starts_at = payload.qualification_starts_at;
+  }
+  if (payload.qualification_ends_at !== undefined) {
+    requestBody.qualification_ends_at = payload.qualification_ends_at;
+  }
+  if (payload.draw_at !== undefined) requestBody.draw_at = payload.draw_at;
+  if (payload.claim_window_days !== undefined) {
+    requestBody.claim_window_days = payload.claim_window_days;
+  }
   const result = await referralAdminRequest<
     AdminReferralDraw | { draw: AdminReferralDraw }
   >(`/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}`, token, {
     method: "PATCH",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(requestBody),
   });
   return normalizeReferralDraw(result);
 }
