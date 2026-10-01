@@ -33,11 +33,46 @@ function getApiBase() {
   return configured.replace(/^http:(?!\/\/)/, "http://").replace(/\/$/, "");
 }
 
+function formatErrorDetail(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => formatErrorDetail(item))
+      .filter(Boolean)
+      .join("; ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const message = record.msg ?? record.message ?? record.error;
+    const formattedMessage = formatErrorDetail(message);
+    if (formattedMessage) {
+      const location = Array.isArray(record.loc)
+        ? ` (${record.loc.map(String).join(".")})`
+        : "";
+      return `${formattedMessage}${location}`;
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  return String(value);
+}
+
 async function readError(res: Response) {
   const text = await res.text();
   try {
     const parsed = JSON.parse(text);
-    return parsed.detail || parsed.message || parsed.error || text;
+    const detail = formatErrorDetail(
+      parsed.detail ?? parsed.message ?? parsed.error,
+    );
+    return detail || text;
   } catch {
     return text;
   }
