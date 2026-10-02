@@ -19,19 +19,60 @@ import {
   OrganizationMembersPayload,
   OrganizationMembersResponse,
   OrganizationBillingSource,
-  OrganizationLifecycleStatus
+  OrganizationLifecycleStatus,
+  AdminReferralDraw,
+  AdminReferralDrawAuditEvent,
+  AdminReferralDrawListResponse,
+  CreateReferralDrawPayload,
+  UpdateReferralDrawPayload,
 } from "./types";
 
 function getApiBase() {
-  const configured = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+  const configured =
+    process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   return configured.replace(/^http:(?!\/\/)/, "http://").replace(/\/$/, "");
+}
+
+function formatErrorDetail(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => formatErrorDetail(item))
+      .filter(Boolean)
+      .join("; ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const message = record.msg ?? record.message ?? record.error;
+    const formattedMessage = formatErrorDetail(message);
+    if (formattedMessage) {
+      const location = Array.isArray(record.loc)
+        ? ` (${record.loc.map(String).join(".")})`
+        : "";
+      return `${formattedMessage}${location}`;
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  return String(value);
 }
 
 async function readError(res: Response) {
   const text = await res.text();
   try {
     const parsed = JSON.parse(text);
-    return parsed.detail || parsed.message || parsed.error || text;
+    const detail = formatErrorDetail(
+      parsed.detail ?? parsed.message ?? parsed.error,
+    );
+    return detail || text;
   } catch {
     return text;
   }
@@ -50,10 +91,17 @@ export class ApiRequestError extends Error {
 }
 
 function apiError(action: string, res: Response, detail: string) {
-  return new ApiRequestError(`${action}: ${res.status} ${detail}`, res.status, detail);
+  return new ApiRequestError(
+    `${action}: ${res.status} ${detail}`,
+    res.status,
+    detail,
+  );
 }
 
-function adminHeaders(token?: string | null, _userId?: string | null): HeadersInit {
+function adminHeaders(
+  token?: string | null,
+  _userId?: string | null,
+): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     accept: "application/json",
@@ -68,26 +116,30 @@ const answerLabels = ["a", "b", "c", "d"] as const;
 type AnswerLabel = (typeof answerLabels)[number];
 
 function normalizeAnswerText(value: unknown) {
-  return value
-    ?.toString()
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ") || "";
+  return value?.toString().trim().toLowerCase().replace(/\s+/g, " ") || "";
 }
 
-function parseCorrectAnswer(rawAnswer: unknown, choiceValues: unknown[]): AnswerLabel | null {
+function parseCorrectAnswer(
+  rawAnswer: unknown,
+  choiceValues: unknown[],
+): AnswerLabel | null {
   const normalizedAnswer = normalizeAnswerText(rawAnswer);
   if (!normalizedAnswer) return null;
 
-  const exactLabel = normalizedAnswer.match(/^(?:option\s*)?[\(\[]?([a-d])[\)\].:]?$/);
+  const exactLabel = normalizedAnswer.match(
+    /^(?:option\s*)?[\(\[]?([a-d])[\)\].:]?$/,
+  );
   if (exactLabel) return exactLabel[1] as AnswerLabel;
 
   const answerByText = answerLabels.find(
-    (_label, choiceIndex) => normalizeAnswerText(choiceValues[choiceIndex]) === normalizedAnswer
+    (_label, choiceIndex) =>
+      normalizeAnswerText(choiceValues[choiceIndex]) === normalizedAnswer,
   );
   if (answerByText) return answerByText;
 
-  const optionPrefix = normalizedAnswer.match(/^(?:option\s*)?[\(\[]?([a-d])[\)\].:]\s+/);
+  const optionPrefix = normalizedAnswer.match(
+    /^(?:option\s*)?[\(\[]?([a-d])[\)\].:]\s+/,
+  );
   if (optionPrefix) return optionPrefix[1] as AnswerLabel;
 
   return null;
@@ -99,13 +151,12 @@ function transformAssessmentJson(data: any, assessmentId: string): Assessment {
     const choiceValues = Array.isArray(rawChoices)
       ? rawChoices
       : [q.a, q.b, q.c, q.d];
-    const rawAnswer = (
+    const rawAnswer =
       q.answer ??
       q.teacher_metadata?.correct_answer ??
       q.correct_answer ??
       q.correctAnswer ??
-      q.student_view?.answer
-    );
+      q.student_view?.answer;
     const parsedAnswer = parseCorrectAnswer(rawAnswer, choiceValues);
 
     return {
@@ -129,7 +180,9 @@ function transformAssessmentJson(data: any, assessmentId: string): Assessment {
   };
 }
 
-export async function getAssessmentByCode(accessCode: string): Promise<Assessment> {
+export async function getAssessmentByCode(
+  accessCode: string,
+): Promise<Assessment> {
   const res = await fetch(`/api/assessment/${accessCode}`);
   if (!res.ok) {
     let errorMessage = "Assessment not found";
@@ -144,14 +197,19 @@ export async function getAssessmentByCode(accessCode: string): Promise<Assessmen
   }
   const data = await res.json();
   const assessmentContent = data.assessment?.assessment || data.assessment;
-  const assessmentId = data.assessment?.assessment_id || data.assessment_id || accessCode;
+  const assessmentId =
+    data.assessment?.assessment_id || data.assessment_id || accessCode;
 
   if (!assessmentContent?.title) {
     throw new Error("Assessment content not found in response.");
   }
 
-  const transformed = transformAssessmentJson(assessmentContent, assessmentId.toString());
-  const classId = data.assessment?.class_id || data.access_code?.class_id || data.class_id;
+  const transformed = transformAssessmentJson(
+    assessmentContent,
+    assessmentId.toString(),
+  );
+  const classId =
+    data.assessment?.class_id || data.access_code?.class_id || data.class_id;
   if (classId) transformed.class_id = classId.toString();
   const roster = data.roster || data.access_code?.roster;
   transformed.roster = Array.isArray(roster) ? roster : [];
@@ -176,7 +234,9 @@ export async function getAssessmentByCode(accessCode: string): Promise<Assessmen
   return transformed;
 }
 
-export async function submitAssessmentResults(payload: SubmitResultsPayload): Promise<any> {
+export async function submitAssessmentResults(
+  payload: SubmitResultsPayload,
+): Promise<any> {
   // Use the local Next.js API route as a proxy to bypass CORS
   const res = await fetch("/api/submit", {
     method: "POST",
@@ -191,7 +251,7 @@ export async function submitAssessmentResults(payload: SubmitResultsPayload): Pr
 
 export async function checkAssessmentAnswers(
   accessCode: string,
-  responses: Record<string, string>
+  responses: Record<string, string>,
 ): Promise<{
   total: number;
   answered: number;
@@ -214,28 +274,34 @@ export async function checkAssessmentAnswers(
   return res.json();
 }
 
-export async function getDashboardAnalytics(token?: string | null, userId?: string | null): Promise<DashboardAnalytics> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+export async function getDashboardAnalytics(
+  token?: string | null,
+  userId?: string | null,
+): Promise<DashboardAnalytics> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/analytics/dashboard`;
   console.log(`[API] Fetching dashboard analytics from: ${url}`);
 
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {
     headers,
-    next: { revalidate: 0 }
+    next: { revalidate: 0 },
   });
 
   if (!res.ok) {
     const errorText = await res.text();
     console.error(`[API Error] Status: ${res.status}, Body: ${errorText}`);
-    throw new Error(`Failed to fetch dashboard analytics: ${res.status} ${errorText}`);
+    throw new Error(
+      `Failed to fetch dashboard analytics: ${res.status} ${errorText}`,
+    );
   }
 
   return res.json();
@@ -245,9 +311,10 @@ export async function updateFeedbackStatus(
   token: string | null,
   userId: string | null,
   feedbackId: string,
-  status: "pending" | "in review" | "resolved"
+  status: "pending" | "in review" | "resolved",
 ): Promise<{ message: string }> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/feedbacks/${feedbackId}/status`;
 
   const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -262,34 +329,44 @@ export async function updateFeedbackStatus(
 
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(`Failed to update feedback status: ${res.status} ${errorText}`);
+    throw new Error(
+      `Failed to update feedback status: ${res.status} ${errorText}`,
+    );
   }
 
   return res.json();
 }
 
-export async function getFeedbacks(token?: string | null, userId?: string | null, limit: number = 20, offset: number = 0): Promise<FeedbackResponse> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+export async function getFeedbacks(
+  token?: string | null,
+  userId?: string | null,
+  limit: number = 20,
+  offset: number = 0,
+): Promise<FeedbackResponse> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/feedbacks?limit=${limit}&offset=${offset}`;
 
   console.log(`[API] Fetching feedbacks from: ${url}`);
 
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {
     headers,
-    next: { revalidate: 0 }
+    next: { revalidate: 0 },
   });
 
   if (!res.ok) {
     const errorText = await res.text();
-    console.error(`[API Error Feedbacks] Status: ${res.status}, Body: ${errorText}`);
+    console.error(
+      `[API Error Feedbacks] Status: ${res.status}, Body: ${errorText}`,
+    );
     throw new Error(`Failed to fetch feedbacks: ${res.status} ${errorText}`);
   }
 
@@ -305,14 +382,15 @@ export async function getTeachers(
     organizationId?: number | string;
     email?: string;
     name?: string;
-  }
+  },
 ): Promise<TeacherListResponse> {
   const baseUrl = getApiBase();
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
   });
-  if (filters?.organizationId) params.set("organization_id", filters.organizationId.toString());
+  if (filters?.organizationId)
+    params.set("organization_id", filters.organizationId.toString());
   if (filters?.email) params.set("email", filters.email);
   if (filters?.name) params.set("name", filters.name);
   const url = `${baseUrl}/v1/admin/teachers?${params.toString()}`;
@@ -320,85 +398,111 @@ export async function getTeachers(
   console.log(`[API] Fetching teachers from: ${url}`);
 
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {
     headers,
-    next: { revalidate: 0 }
+    next: { revalidate: 0 },
   });
 
   if (!res.ok) {
     const errorText = await res.text();
-    console.error(`[API Error Teachers] Status: ${res.status}, Body: ${errorText}`);
+    console.error(
+      `[API Error Teachers] Status: ${res.status}, Body: ${errorText}`,
+    );
     throw new Error(`Failed to fetch teachers: ${res.status} ${errorText}`);
   }
 
   return res.json();
 }
 
-export async function getTeacherById(token: string | null, userId: string | null, teacherId: string): Promise<TeacherDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+export async function getTeacherById(
+  token: string | null,
+  userId: string | null,
+  teacherId: string,
+): Promise<TeacherDetail> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/teachers/${teacherId}`;
 
   console.log(`[API] Fetching teacher details from: ${url}`);
 
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {
     headers,
-    next: { revalidate: 0 }
+    next: { revalidate: 0 },
   });
 
   if (!res.ok) {
     const errorText = await res.text();
-    console.error(`[API Error Teacher Detail] Status: ${res.status}, TeacherID: ${teacherId}, Body: ${errorText}`);
-    throw new Error(`Failed to fetch teacher details: ${res.status} ${errorText}`);
+    console.error(
+      `[API Error Teacher Detail] Status: ${res.status}, TeacherID: ${teacherId}, Body: ${errorText}`,
+    );
+    throw new Error(
+      `Failed to fetch teacher details: ${res.status} ${errorText}`,
+    );
   }
 
   return res.json();
 }
 
-export async function getAssessmentDetail(token: string | null, userId: string | null, assessmentId: string): Promise<AssessmentDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+export async function getAssessmentDetail(
+  token: string | null,
+  userId: string | null,
+  assessmentId: string,
+): Promise<AssessmentDetail> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/assessments/${assessmentId}`;
 
-  const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(url, { headers, next: { revalidate: 0 } });
   if (!res.ok) throw new Error("Failed to fetch assessment detail");
   return res.json();
 }
 
-export async function getStrategyDetail(token: string | null, userId: string | null, strategyId: string): Promise<StrategyDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+export async function getStrategyDetail(
+  token: string | null,
+  userId: string | null,
+  strategyId: string,
+): Promise<StrategyDetail> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/strategies/${strategyId}`;
 
-  const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(url, { headers, next: { revalidate: 0 } });
   if (!res.ok) throw new Error("Failed to fetch strategy detail");
   return res.json();
 }
 
-export async function getLessonPlanDetail(token: string | null, userId: string | null, lessonId: string): Promise<LessonPlanDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
+export async function getLessonPlanDetail(
+  token: string | null,
+  userId: string | null,
+  lessonId: string,
+): Promise<LessonPlanDetail> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/lesson-plans/${lessonId}`;
 
-  const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(url, { headers, next: { revalidate: 0 } });
   if (!res.ok) throw new Error("Failed to fetch lesson plan detail");
@@ -419,7 +523,9 @@ export async function getSubscriptionPlans(): Promise<SubscriptionPlansResponse>
 
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(`Failed to fetch subscription plans: ${res.status} ${errorText}`);
+    throw new Error(
+      `Failed to fetch subscription plans: ${res.status} ${errorText}`,
+    );
   }
 
   return res.json();
@@ -459,7 +565,7 @@ export async function updateUserPlan(
   token: string | null,
   userId: string | null,
   clerkUserIds: string | string[],
-  plan: "Freemium" | "Insight" | "Impact Pro"
+  plan: "Freemium" | "Insight" | "Impact Pro",
 ): Promise<{ updated_users?: any[]; message?: string }> {
   const baseUrl = "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/users/plan`;
@@ -488,7 +594,7 @@ export async function getAIUsage(
   token: string | null,
   userId: string | null,
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<AIUsageResponse> {
   const baseUrl = "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/ai-usage/users?limit=${limit}&offset=${offset}`;
@@ -496,22 +602,24 @@ export async function getAIUsage(
   console.log(`[API] Fetching AI usage from: ${url}`);
 
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    'accept': 'application/json',
+    "Content-Type": "application/json",
+    accept: "application/json",
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {
     headers,
-    next: { revalidate: 0 }
+    next: { revalidate: 0 },
   });
 
   if (!res.ok) {
     const errorText = await res.text();
-    console.error(`[API Error AI Usage] Status: ${res.status}, Body: ${errorText}`);
+    console.error(
+      `[API Error AI Usage] Status: ${res.status}, Body: ${errorText}`,
+    );
     throw new Error(`Failed to fetch AI usage: ${res.status} ${errorText}`);
   }
 
@@ -522,7 +630,7 @@ export async function getAIUsageCalls(
   token: string | null,
   userId: string | null,
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<AIUsageCallsResponse> {
   const baseUrl = "https://d3bqxy57prpkdk.cloudfront.net";
   const url = `${baseUrl}/v1/admin/ai-usage/calls?limit=${limit}&offset=${offset}`;
@@ -530,23 +638,27 @@ export async function getAIUsageCalls(
   console.log(`[API] Fetching AI usage calls from: ${url}`);
 
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    'accept': 'application/json',
+    "Content-Type": "application/json",
+    accept: "application/json",
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {
     headers,
-    next: { revalidate: 0 }
+    next: { revalidate: 0 },
   });
 
   if (!res.ok) {
     const errorText = await res.text();
-    console.error(`[API Error AI Usage Calls] Status: ${res.status}, Body: ${errorText}`);
-    throw new Error(`Failed to fetch AI usage calls: ${res.status} ${errorText}`);
+    console.error(
+      `[API Error AI Usage Calls] Status: ${res.status}, Body: ${errorText}`,
+    );
+    throw new Error(
+      `Failed to fetch AI usage calls: ${res.status} ${errorText}`,
+    );
   }
 
   return res.json();
@@ -561,7 +673,7 @@ export async function getOrganizations(
     search?: string;
     lifecycleStatus?: OrganizationLifecycleStatus | "";
     billingSource?: OrganizationBillingSource | "";
-  } = {}
+  } = {},
 ): Promise<OrganizationListResponse> {
   const baseUrl = getApiBase();
   const query = new URLSearchParams({
@@ -569,13 +681,17 @@ export async function getOrganizations(
     offset: (params.offset ?? 0).toString(),
   });
   if (params.search) query.set("search", params.search);
-  if (params.lifecycleStatus) query.set("lifecycle_status", params.lifecycleStatus);
+  if (params.lifecycleStatus)
+    query.set("lifecycle_status", params.lifecycleStatus);
   if (params.billingSource) query.set("billing_source", params.billingSource);
 
-  const res = await fetch(`${baseUrl}/v1/admin/organizations?${query.toString()}`, {
-    headers: adminHeaders(token, userId),
-    next: { revalidate: 0 },
-  });
+  const res = await fetch(
+    `${baseUrl}/v1/admin/organizations?${query.toString()}`,
+    {
+      headers: adminHeaders(token, userId),
+      next: { revalidate: 0 },
+    },
+  );
 
   if (!res.ok) {
     throw apiError("Failed to fetch organizations", res, await readError(res));
@@ -587,13 +703,16 @@ export async function getOrganizations(
 export async function getOrganizationById(
   token: string | null,
   userId: string | null,
-  organizationId: string | number
+  organizationId: string | number,
 ): Promise<OrganizationDetail> {
   const baseUrl = getApiBase();
-  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}`, {
-    headers: adminHeaders(token, userId),
-    next: { revalidate: 0 },
-  });
+  const res = await fetch(
+    `${baseUrl}/v1/admin/organizations/${organizationId}`,
+    {
+      headers: adminHeaders(token, userId),
+      next: { revalidate: 0 },
+    },
+  );
 
   if (!res.ok) {
     throw apiError("Failed to fetch organization", res, await readError(res));
@@ -605,7 +724,7 @@ export async function getOrganizationById(
 export async function createManualOrganization(
   token: string | null,
   userId: string | null,
-  payload: CreateOrganizationPayload
+  payload: CreateOrganizationPayload,
 ): Promise<OrganizationDetail> {
   const baseUrl = getApiBase();
   const res = await fetch(`${baseUrl}/v1/admin/organizations`, {
@@ -626,15 +745,18 @@ export async function addOrganizationMembers(
   token: string | null,
   userId: string | null,
   organizationId: string | number,
-  payload: OrganizationMembersPayload
+  payload: OrganizationMembersPayload,
 ): Promise<OrganizationMembersResponse> {
   const baseUrl = getApiBase();
-  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}/members`, {
-    method: "POST",
-    headers: adminHeaders(token, userId),
-    body: JSON.stringify(payload),
-    next: { revalidate: 0 },
-  });
+  const res = await fetch(
+    `${baseUrl}/v1/admin/organizations/${organizationId}/members`,
+    {
+      method: "POST",
+      headers: adminHeaders(token, userId),
+      body: JSON.stringify(payload),
+      next: { revalidate: 0 },
+    },
+  );
 
   if (!res.ok) {
     throw apiError("Failed to add members", res, await readError(res));
@@ -647,14 +769,17 @@ export async function removeOrganizationMember(
   token: string | null,
   userId: string | null,
   organizationId: string | number,
-  teacherId: string
+  teacherId: string,
 ): Promise<{ status: string; message: string; organization_id: number }> {
   const baseUrl = getApiBase();
-  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}/members/${teacherId}`, {
-    method: "DELETE",
-    headers: adminHeaders(token, userId),
-    next: { revalidate: 0 },
-  });
+  const res = await fetch(
+    `${baseUrl}/v1/admin/organizations/${organizationId}/members/${teacherId}`,
+    {
+      method: "DELETE",
+      headers: adminHeaders(token, userId),
+      next: { revalidate: 0 },
+    },
+  );
 
   if (!res.ok) {
     throw apiError("Failed to remove member", res, await readError(res));
@@ -667,14 +792,17 @@ export async function cancelOrganizationInvite(
   token: string | null,
   userId: string | null,
   organizationId: string | number,
-  invitationId: string | number
+  invitationId: string | number,
 ): Promise<{ status: string; message: string; organization_id: number }> {
   const baseUrl = getApiBase();
-  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}/invites/${invitationId}/cancel`, {
-    method: "POST",
-    headers: adminHeaders(token, userId),
-    next: { revalidate: 0 },
-  });
+  const res = await fetch(
+    `${baseUrl}/v1/admin/organizations/${organizationId}/invites/${invitationId}/cancel`,
+    {
+      method: "POST",
+      headers: adminHeaders(token, userId),
+      next: { revalidate: 0 },
+    },
+  );
 
   if (!res.ok) {
     throw apiError("Failed to cancel invite", res, await readError(res));
@@ -687,18 +815,205 @@ export async function resendOrganizationInvite(
   token: string | null,
   userId: string | null,
   organizationId: string | number,
-  invitationId: string | number
+  invitationId: string | number,
 ): Promise<{ status: string; invitation_id: number }> {
   const baseUrl = getApiBase();
-  const res = await fetch(`${baseUrl}/v1/admin/organizations/${organizationId}/invites/${invitationId}/resend`, {
-    method: "POST",
-    headers: adminHeaders(token, userId),
-    next: { revalidate: 0 },
-  });
+  const res = await fetch(
+    `${baseUrl}/v1/admin/organizations/${organizationId}/invites/${invitationId}/resend`,
+    {
+      method: "POST",
+      headers: adminHeaders(token, userId),
+      next: { revalidate: 0 },
+    },
+  );
 
   if (!res.ok) {
     throw apiError("Failed to resend invite", res, await readError(res));
   }
 
   return res.json();
+}
+
+async function referralAdminRequest<T>(
+  path: string,
+  token: string | null,
+  init: RequestInit = {},
+): Promise<T> {
+  const baseUrl = getApiBase();
+  const res = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...adminHeaders(token),
+      ...init.headers,
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw apiError("Referral draw request failed", res, await readError(res));
+  }
+
+  const text = await res.text();
+  return (text.trim() ? JSON.parse(text) : {}) as T;
+}
+
+function normalizeReferralDraw(value: unknown): AdminReferralDraw {
+  const record = value as { draw?: AdminReferralDraw } & AdminReferralDraw;
+  return record.draw ?? record;
+}
+
+export async function getReferralDraws(
+  token: string | null,
+): Promise<AdminReferralDrawListResponse> {
+  const result = await referralAdminRequest<
+    | AdminReferralDrawListResponse
+    | AdminReferralDraw[]
+    | { items?: AdminReferralDraw[] }
+  >("/v1/admin/referral-draws", token);
+  if (Array.isArray(result)) return { draws: result, total: result.length };
+  const draws =
+    "draws" in result && Array.isArray(result.draws)
+      ? result.draws
+      : "items" in result && Array.isArray(result.items)
+        ? result.items
+        : [];
+  const total =
+    "total" in result && typeof result.total === "number"
+      ? result.total
+      : draws.length;
+  return { draws, total };
+}
+
+export async function getReferralDraw(
+  token: string | null,
+  drawId: string | number,
+): Promise<AdminReferralDraw> {
+  const result = await referralAdminRequest<
+    AdminReferralDraw | { draw: AdminReferralDraw }
+  >(`/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}`, token);
+  return normalizeReferralDraw(result);
+}
+
+export async function createReferralDraw(
+  token: string | null,
+  payload: CreateReferralDrawPayload,
+): Promise<AdminReferralDraw> {
+  const requestBody: CreateReferralDrawPayload = {
+    name: payload.name,
+    qualification_starts_at: payload.qualification_starts_at,
+    qualification_ends_at: payload.qualification_ends_at,
+    draw_at: payload.draw_at,
+    claim_window_days: payload.claim_window_days,
+  };
+  const result = await referralAdminRequest<
+    AdminReferralDraw | { draw: AdminReferralDraw }
+  >("/v1/admin/referral-draws", token, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+  return normalizeReferralDraw(result);
+}
+
+export async function updateReferralDraw(
+  token: string | null,
+  drawId: string | number,
+  payload: UpdateReferralDrawPayload,
+): Promise<AdminReferralDraw> {
+  const requestBody: UpdateReferralDrawPayload = {};
+  if (payload.name !== undefined) requestBody.name = payload.name;
+  if (payload.qualification_starts_at !== undefined) {
+    requestBody.qualification_starts_at = payload.qualification_starts_at;
+  }
+  if (payload.qualification_ends_at !== undefined) {
+    requestBody.qualification_ends_at = payload.qualification_ends_at;
+  }
+  if (payload.draw_at !== undefined) requestBody.draw_at = payload.draw_at;
+  if (payload.claim_window_days !== undefined) {
+    requestBody.claim_window_days = payload.claim_window_days;
+  }
+  const result = await referralAdminRequest<
+    AdminReferralDraw | { draw: AdminReferralDraw }
+  >(`/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(requestBody),
+  });
+  return normalizeReferralDraw(result);
+}
+
+export async function cancelReferralDraw(
+  token: string | null,
+  drawId: string | number,
+  reason: string,
+) {
+  return referralAdminRequest<Record<string, unknown>>(
+    `/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}/cancel`,
+    token,
+    { method: "POST", body: JSON.stringify({ reason }) },
+  );
+}
+
+export async function freezeReferralDraw(
+  token: string | null,
+  drawId: string | number,
+) {
+  return referralAdminRequest<Record<string, unknown>>(
+    `/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}/freeze`,
+    token,
+    { method: "POST" },
+  );
+}
+
+export async function executeReferralDraw(
+  token: string | null,
+  drawId: string | number,
+  redraw = false,
+) {
+  return referralAdminRequest<Record<string, unknown>>(
+    `/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}/${redraw ? "redraw" : "draw"}`,
+    token,
+    { method: "POST" },
+  );
+}
+
+export async function configureReferralGiftCard(
+  token: string | null,
+  drawId: string | number,
+  claimCode: string,
+) {
+  return referralAdminRequest<Record<string, unknown>>(
+    `/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}/winner/gift-card`,
+    token,
+    { method: "POST", body: JSON.stringify({ claim_code: claimCode }) },
+  );
+}
+
+export async function disqualifyReferralWinner(
+  token: string | null,
+  drawId: string | number,
+  reason: string,
+) {
+  return referralAdminRequest<Record<string, unknown>>(
+    `/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}/winner/disqualify`,
+    token,
+    { method: "POST", body: JSON.stringify({ reason }) },
+  );
+}
+
+export async function getReferralDrawAudit(
+  token: string | null,
+  drawId: string | number,
+): Promise<AdminReferralDrawAuditEvent[]> {
+  const result = await referralAdminRequest<
+    | AdminReferralDrawAuditEvent[]
+    | {
+        events?: AdminReferralDrawAuditEvent[];
+        audit?: AdminReferralDrawAuditEvent[];
+      }
+  >(
+    `/v1/admin/referral-draws/${encodeURIComponent(String(drawId))}/audit`,
+    token,
+  );
+  if (Array.isArray(result)) return result;
+  if (Array.isArray(result.events)) return result.events;
+  return Array.isArray(result.audit) ? result.audit : [];
 }
